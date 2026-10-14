@@ -1,0 +1,42 @@
+SPACESIM — FIRST CARGO 0.1
+Wersja portable dla Windows 10/11, 64-bit (Intel/AMD)
+
+URUCHOMIENIE — BEZ INSTALACJI
+
+1. Kliknij ZIP prawym przyciskiem i wybierz „Wyodrębnij wszystkie”.
+2. Otwórz wypakowany folder SpaceSim-0.1-win-x64-portable.
+3. Uruchom SpaceSim.exe zwykłym dwuklikiem.
+
+Nie uruchamiaj gry bezpośrednio wewnątrz ZIP-a.
+Zachowaj obok EXE plik SpaceSim.pck i cały folder data_SpaceSim.Game_windows_x86_64.
+Gra zawiera Godota i .NET. Nie wymaga instalowania ich ani uprawnień administratora.
+Do gry nie jest potrzebne połączenie z Internetem.
+
+PIERWSZY KURS
+
+Zaczynasz obok kopalni Kepler.
+E — zadokuj, B — kup rudę, E — odłącz dok.
+A/D lub strzałki lewo/prawo — obrót.
+W/S lub strzałki góra/dół — ciąg do przodu / wstecz.
+Spacja — hamowanie.
+Poleć w prawo do rafinerii Helios. Wyhamuj w obrębie okręgu wokół stacji.
+E — zadokuj, V — sprzedaj rudę.
+P — pauza / kontynuacja. Przyciski handlu są również na prawym panelu.
+
+WERSJA PROTOTYPOWA
+
+Działają pilotaż, dokowanie, handel, produkcja oraz transportowiec AI.
+Nie ma jeszcze zapisu gry: po zamknięciu postęp przepada.
+Brak walki i wielu sektorów. Po nasyceniu magazynu metalu handel może stanąć.
+
+W RAZIE PROBLEMU
+
+Jeżeli gra nie otwiera okna lub pojawia się komunikat, zachowaj jego treść
+albo zrzut ekranu i prześlij go w rozmowie. Nie trzeba instalować dodatkowych narzędzi.
+Log Godota może zostać zapisany w folderze danych aplikacji bieżącego użytkownika.
+Wydanie nie jest podpisane cyfrowo; nie zmieniaj zabezpieczeń komputera firmowego.
+
+Weryfikacja twórcy: eksport Windows i kompletność bibliotek sprawdzone;
+testy gry i samodzielnego eksportu wykonane na Linux. Windows wymaga jeszcze próby uruchomienia.
+
+Licencje wykorzystanych bibliotek: folder licenses.

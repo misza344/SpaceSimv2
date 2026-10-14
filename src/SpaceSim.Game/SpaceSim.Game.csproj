@@ -1,0 +1,12 @@
+<Project Sdk="Godot.NET.Sdk/4.6.3">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
+    <!-- Export configurations omit GodotSharpEditor; keep their dependency locks separate. -->
+    <NuGetLockFilePath Condition="'$(Configuration)' == 'ExportRelease' Or '$(Configuration)' == 'ExportDebug'">packages.$(Configuration).lock.json</NuGetLockFilePath>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="../SpaceSim.Core/SpaceSim.Core.csproj" /></ItemGroup>
+</Project>
