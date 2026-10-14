@@ -11,6 +11,8 @@ public partial class Main : Node3D
     public bool MapOpen { get; private set; }
     private Node3D _player = null!, _trader = null!;
     private Node3D _mine = null!, _refinery = null!;
+    private Node3D _cockpitFrame = null!;
+    private bool _artReview;
     private FlightHud _hud = null!;
     private Vector2 _mouseDelta;
     private bool _smoke;
@@ -28,6 +30,7 @@ public partial class Main : Node3D
         _trader.Scale = Vector3.One * 1.5f;
         FlightCamera = new Camera3D { Fov = 68, Near = .15f, Far = 16000, Current = true };
         AddChild(FlightCamera);
+        _cockpitFrame=SpaceGeometry.CockpitFrame(FlightCamera);
         UpdateShips();
         UpdateCamera(1, true);
         var canvas = new CanvasLayer(); AddChild(canvas);
@@ -36,6 +39,8 @@ public partial class Main : Node3D
         AddChild(_engine); _engine.Play();
         _beep = new AudioStreamPlayer { Stream = Tone(680, .12f, false), VolumeDb = -21 }; AddChild(_beep);
         _smoke = OS.GetCmdlineUserArgs().Contains("--smoke-test");
+        if (OS.GetCmdlineUserArgs().Contains("--export-models")) ExportModels();
+        if (OS.GetCmdlineUserArgs().Contains("--art-review")) { _artReview=true; CaptureModels(); }
     }
 
     private void BuildEnvironment()
@@ -45,14 +50,14 @@ public partial class Main : Node3D
             BackgroundMode = Godot.Environment.BGMode.Sky,
             Sky = new Sky { SkyMaterial = new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/space.gdshader") }, RadianceSize = Sky.RadianceSizeEnum.Size128 },
             AmbientLightSource = Godot.Environment.AmbientSource.Color,
-            AmbientLightColor = new Color("718cae"), AmbientLightEnergy = .32f,
+            AmbientLightColor = new Color("718cae"), AmbientLightEnergy = .48f,
             ReflectedLightSource = Godot.Environment.ReflectionSource.Disabled,
             TonemapMode = Godot.Environment.ToneMapper.Aces,
             TonemapExposure = .9f
         };
         AddChild(new WorldEnvironment { Environment = env });
-        AddChild(new DirectionalLight3D { RotationDegrees = new(-32, -35, 0), LightColor = new Color("ffe4bd"), LightEnergy = 1.1f, ShadowEnabled = true, DirectionalShadowMaxDistance = 650 });
-        AddChild(new DirectionalLight3D { RotationDegrees = new(25, 145, 0), LightColor = new Color("577ab7"), LightEnergy = .45f });
+        AddChild(new DirectionalLight3D { RotationDegrees = new(-32, -35, 0), LightColor = new Color("ffe4bd"), LightEnergy = 1.15f, ShadowEnabled = true, DirectionalShadowMaxDistance = 650 });
+        AddChild(new DirectionalLight3D { RotationDegrees = new(25, 145, 0), LightColor = new Color("577ab7"), LightEnergy = .6f });
         var planet = SpaceGeometry.Sphere(this, 1050, new(1300, -640, -4100), new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/planet.gdshader") }, 96);
         planet.RotationDegrees = new(0, 25, 22);
         SpaceGeometry.Sphere(this, 1090, planet.Position, new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/atmosphere.gdshader") }, 96);
@@ -62,6 +67,7 @@ public partial class Main : Node3D
 
     public override void _PhysicsProcess(double delta)
     {
+        if (_artReview) return;
         if (!Paused)
         {
             float yaw = Axis(Key.Right, Key.Left) + _mouseDelta.X * .032f;
@@ -87,6 +93,7 @@ public partial class Main : Node3D
         _mine.GetNode<Node3D>("HabitatRing").Rotation = new(0, 0, Universe.Tick / 60f * .035f);
         _refinery.GetNode<Node3D>("HabitatRing").Rotation = new(0, 0, -Universe.Tick / 60f * .022f);
         _player.Visible = !Cockpit;
+        _cockpitFrame.Visible = Cockpit;
     }
 
     private static void SyncShip(Node3D model, Ship ship)
@@ -97,7 +104,9 @@ public partial class Main : Node3D
         {
             var plume = model.GetNode<Node3D>(name);
             plume.Visible = ship.DockedAt is null;
-            plume.Scale = new(1, .3f + MathF.Min(ship.Velocity.Length() / 100, 2), 1);
+            float length=.3f + MathF.Min(ship.Velocity.Length() / 100, 2);
+            plume.Scale = new(1,length,1);
+            plume.Position = new(plume.Position.X,plume.Position.Y,6.68f+1.7f*length);
         }
     }
 
@@ -128,6 +137,7 @@ public partial class Main : Node3D
     {
         if (key == Key.P || key == Key.Escape) { Paused = !Paused; _hud.Refresh(); return; }
         if (key == Key.Tab) { MapOpen = !MapOpen; _hud.Refresh(); return; }
+        if (key == Key.H) { _hud.Visible = !_hud.Visible; return; }
         if (key == Key.C) { Cockpit = !Cockpit; return; }
         if (Paused) return;
         switch (key)
@@ -164,6 +174,50 @@ public partial class Main : Node3D
             FinishSmoke(0);
         }
         catch (Exception ex) { GD.PushError($"SMOKE FAIL 3D: {ex.Message}"); FinishSmoke(1); }
+    }
+
+    private async void CaptureModels()
+    {
+        _hud.Visible=false; _cockpitFrame.Visible=false; StopSounds();
+        var models=new[]{_player,_trader,_mine,_refinery};
+        foreach(var model in models) model.Visible=false;
+        // Separate art review: rendered by the same camera/material pipeline as the game.
+        string directory=ProjectSettings.GlobalizePath("res://../../docs/art");
+        System.IO.Directory.CreateDirectory(directory);
+        foreach(var model in models)
+        {
+            model.Visible=true; model.Position=Vector3.Zero; model.Rotation=Vector3.Zero; model.Scale=Vector3.One;
+            bool ship=model==_player||model==_trader;
+            FlightCamera.Position=ship?new(15,10,-22):new(135,85,210);
+            FlightCamera.LookAt(ship?new Vector3(0,0,0):new Vector3(0,0,15)); FlightCamera.Fov=50;
+            for(int i=0;i<12;i++) await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
+            using var screenshot=GetViewport().GetTexture().GetImage();
+            var result=screenshot.SavePng($"{directory}/{model.Name}.png");
+            if(result!=Error.Ok) { GD.PushError($"Screenshot failed: {result}"); FinishSmoke(1); return; }
+            GD.Print($"ART CAPTURED: {model.Name}");model.Visible=false;
+        }
+        FinishSmoke(0);
+    }
+
+    private void ExportModels()
+    {
+        string directory = ProjectSettings.GlobalizePath("res://../../assets/models");
+        System.IO.Directory.CreateDirectory(directory);
+        foreach(var model in new[]{_player,_trader,_mine,_refinery})
+        {
+            var copy = (Node3D)model.Duplicate();
+            copy.Position=Vector3.Zero; copy.Rotation=Vector3.Zero; copy.Scale=Vector3.One;
+            // Text signage is generated in-engine; glTF stores geometry and PBR materials.
+            void StripText(Node node) { foreach(var child in node.GetChildren()) { if(child is Label3D) child.Free(); else StripText(child); } }
+            StripText(copy);
+            using var document=new GltfDocument(); using var state=new GltfState();
+            var error=document.AppendFromScene(copy,state);
+            if(error==Error.Ok) error=document.WriteToFilesystem(state,$"{directory}/{model.Name}.glb");
+            copy.Free();
+            if(error!=Error.Ok) { GD.PushError($"Model export failed: {model.Name}: {error}"); FinishSmoke(1); return; }
+            GD.Print($"MODEL EXPORTED: {model.Name}");
+        }
+        FinishSmoke(0);
     }
 
     private void StopSounds()

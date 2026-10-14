@@ -6,7 +6,7 @@
 
 ## Pobierz i graj — bez instalacji
 
-**[Pobierz SpaceSim 0.2 3D portable — Windows 64-bit](https://github.com/misza344/SpaceSimv2/raw/refs/heads/main/dist/SpaceSim-0.2-3D-win-x64-portable.zip)**
+**[Pobierz SpaceSim 0.3 3D portable — Windows 64-bit](https://github.com/misza344/SpaceSimv2/raw/refs/heads/main/dist/SpaceSim-0.3-3D-win-x64-portable.zip)**
 
 1. Pobierz ZIP. Kliknij prawym przyciskiem → **Wyodrębnij wszystkie**.
 2. Otwórz wypakowany folder i uruchom **SpaceSim.exe**.
@@ -14,7 +14,7 @@
 
 Paczka zawiera Godota i .NET; nie wymaga ich instalacji ani uprawnień administratora. Gra działa offline. Wymaga Windows 10/11 x64 (Intel/AMD) i obsługi OpenGL 3.3. Nie uruchamiaj jej wewnątrz archiwum ZIP.
 
-Wersja 0.1 w `dist/` jest archiwalnym prototypem 2D. Aktualna wersja to **0.2 3D**.
+Wersja 0.1 w `dist/` jest archiwalnym prototypem 2D; 0.2 to pierwsza wersja 3D. Aktualna wersja to **0.3 3D**.
 
 ## Pierwszy kurs — najprościej
 
@@ -83,7 +83,7 @@ bash scripts/export-windows.sh
 
 Narzędzia trafiają do ignorowanego `.tools/`. Skrypty wymagają `curl`, `tar`, `unzip`, a eksport również Pythona 3. `source scripts/env.sh` aktywuje narzędzia dla bezpośrednich poleceń. W chmurowym sandboxie .NET może wymagać zatwierdzonego szerszego dostępu do systemowego mutexa NuGet.
 
-Eksporter weryfikuje SHA-512 oficjalnych szablonów Godota, odtwarza zablokowane zależności, dołącza runtime .NET, instrukcję i licencje. Wynik: `dist/SpaceSim-0.2-3D-win-x64-portable.zip` oraz suma SHA-256. Wydanie nie jest podpisane cyfrowo. Pliki zależności edytora i konfiguracji ExportRelease mają osobne lockfile'y.
+Eksporter weryfikuje SHA-512 oficjalnych szablonów Godota, odtwarza zablokowane zależności, dołącza runtime .NET, instrukcję i licencje. Wynik: `dist/SpaceSim-0.3-3D-win-x64-portable.zip` oraz suma SHA-256. Wydanie nie jest podpisane cyfrowo. Pliki zależności edytora i konfiguracji ExportRelease mają osobne lockfile'y.
 
 ## Weryfikacja
 
@@ -96,3 +96,17 @@ Eksporter weryfikuje SHA-512 oficjalnych szablonów Godota, odtwarza zablokowane
 - `tests/SpaceSim.Core.Tests` — testy reguł i bilansu zasobów.
 - `docs/SpaceSim_Research_X4_i_plan.md` — oryginalny research; zachowany bez zmian.
 - `docs/technology.md` — obecna architektura i dalszy kierunek.
+
+
+## Oprawa 0.3
+
+Własne modele Pioniera, kontenerowca Atlas, kopalni Kepler i rafinerii Helios,
+materiały z podziałem płyt, oznakowanie doków, rama kokpitu 3D oraz skały
+z proceduralnym materiałem. H ukrywa interfejs, C przełącza kamerę.
+
+[Kierunek wizualny i zakres researchu X4](docs/art-direction-x4.md).
+[Modele GLB i odtwarzanie eksportu](assets/models/README.md).
+
+![Pionier — model w silniku gry](docs/art/PionierCourier.png)
+![Kepler — model w silniku gry](docs/art/KeplerExtraction.png)
+![Helios — model w silniku gry](docs/art/HeliosFoundry.png)

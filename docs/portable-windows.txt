@@ -1,10 +1,10 @@
-SPACESIM — KEPLER RUN 3D / 0.2
+SPACESIM — KEPLER RUN 3D / 0.3
 Portable dla Windows 10/11 x64 (Intel/AMD), OpenGL 3.3
 
 URUCHOMIENIE BEZ INSTALACJI
 
 1. Kliknij ZIP prawym przyciskiem → „Wyodrębnij wszystkie”.
-2. Otwórz folder SpaceSim-0.2-3D-win-x64-portable.
+2. Otwórz folder SpaceSim-0.3-3D-win-x64-portable.
 3. Uruchom SpaceSim.exe.
 
 Nie uruchamiaj gry wewnątrz ZIP-a. Zachowaj obok EXE plik SpaceSim.pck
@@ -27,7 +27,7 @@ Strzałki lub prawy przycisk myszy + ruch myszy — kierunek lotu.
 Shift — dopalacz podczas przyspieszania. Spacja — hamowanie.
 E — dokowanie/odłączenie. T — zmiana celu. G — autopilot/wyłączenie.
 B/V — kup/sprzedaj 10 rudy. C — kamera zza statku/pokładowa.
-P lub Esc — pauza. Tab — mapa.
+P lub Esc — pauza. Tab — mapa. H — ukryj/pokaż interfejs.
 
 Dokuj przy świecącym porcie (do 75 m, prędkość poniżej 25 m/s).
 Sterowanie ręczne przerywa autopilota. Na mapie symulacja działa dalej.

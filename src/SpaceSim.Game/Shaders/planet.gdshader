@@ -11,10 +11,10 @@ void fragment() {
  vec3 p=normalize(local_direction);
  float terrain=fbm(p*5.0+vec3(8.0,3.0,4.0));
  float land=smoothstep(.48,.52,terrain);
- vec3 ocean=mix(vec3(.004,.026,.065),vec3(.024,.10,.14),smoothstep(.38,.5,terrain));
- vec3 continent=mix(vec3(.025,.068,.048),vec3(.19,.16,.10),smoothstep(.52,.7,terrain));
+ vec3 ocean=mix(vec3(.012,.045,.09),vec3(.04,.12,.17),smoothstep(.38,.5,terrain));
+ vec3 continent=mix(vec3(.07,.105,.085),vec3(.20,.18,.13),smoothstep(.52,.7,terrain));
  float clouds=smoothstep(.50,.67,fbm(p*12.0+vec3(2.0,7.0,4.0)));
  float polar=smoothstep(.83,.98,abs(p.y)+noise3(p*28.0)*.035);
- ALBEDO=mix(mix(mix(ocean,continent,land),vec3(.55,.64,.7),polar),vec3(.65,.72,.78),clouds*.8);
+ ALBEDO=mix(mix(mix(ocean,continent,land),vec3(.55,.64,.7),polar),vec3(.52,.60,.67),clouds*.72);
  ROUGHNESS=mix(.4,.95,land);
 }

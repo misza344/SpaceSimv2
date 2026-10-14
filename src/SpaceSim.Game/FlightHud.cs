@@ -79,7 +79,7 @@ public partial class FlightHud : Control
         // Thin cockpit framing keeps the flight view open.
         DrawRect(new Rect2(0, 0, Width, 82), new Color(.018f,.035f,.055f,.94f));
         Text(new(29, 36), "SPACE", 25, _white); Text(new(114, 36), "SIM", 25, _cyan);
-        Text(new(29, 61), "KEPLER RUN   /   PROTOTYP 0.2", 11, _muted);
+        Text(new(29, 61), "KEPLER RUN   /   PROTOTYP 0.3", 11, _muted);
         Line(new(229, 21), new(229, 61), new Color("334854"));
         Text(new(251, 36), "PAS KEPLERA", 17, _white);
         Text(new(251, 59), "SEKTOR 01   •   RUCH HANDLOWY AKTYWNY", 11, _muted);
@@ -107,7 +107,7 @@ public partial class FlightHud : Control
         }
         Panel(new(24, Height - 126, Width - 48, 108));
         Text(new(39, Height - 53), "W/S  ciąg     A/D  w bok     Q/Z  góra/dół     PPM + mysz / strzałki  kierunek     SHIFT  dopalacz     SPACJA  hamulec", 12, _muted);
-        Text(new(39, Height - 31), "G  autopilot     T  cel     E  dok     B/V  handel     C  kamera     TAB  mapa     P / ESC  pauza", 12, _cyan);
+        Text(new(39, Height - 31), "G  autopilot     T  cel     E  dok     B/V  handel     C  kamera     H  HUD     TAB  mapa     P / ESC  pauza", 12, _cyan);
         Center(new(cx, 110), "C  /  " + (Game.Cockpit ? "KAMERA POKŁADOWA" : "KAMERA POŚCIGOWA"), 11, _muted);
     }
 

@@ -1,4 +1,4 @@
-# Kierunek techniczny — wersja 0.2
+# Kierunek techniczny — wersja 0.3
 
 14.10.2026: na życzenie użytkownika zmieniono kierunek z 2D na **3D na PC**. Nadal używamy Godota 4.6.3 .NET oraz C#. Nie ma wymogu obsługi telefonów. Grę udostępniamy jako ZIP portable dla Windows x64, z własnym runtime .NET; użytkownik nie potrzebuje instalacji ani administratora.
 
