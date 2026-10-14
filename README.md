@@ -17,7 +17,7 @@ To mały wycinek projektu, nie kompletna gra. Nie ma jeszcze walki, zapisu, reze
 
 ## Granie na Windows — portable, bez instalacji
 
-Paczka: `dist/SpaceSim-0.1-win-x64-portable.zip` (Windows 10/11, Intel/AMD 64-bit).
+**[Pobierz SpaceSim portable — ZIP, około 71 MB](https://github.com/misza344/SpaceSimv2/raw/refs/heads/main/dist/SpaceSim-0.1-win-x64-portable.zip)** (Windows 10/11, Intel/AMD 64-bit).
 
 1. Pobierz ZIP i wybierz **Wyodrębnij wszystkie**.
 2. Otwórz wypakowany folder i uruchom **SpaceSim.exe**.
