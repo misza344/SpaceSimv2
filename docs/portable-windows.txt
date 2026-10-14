@@ -1,42 +1,47 @@
-SPACESIM — FIRST CARGO 0.1
-Wersja portable dla Windows 10/11, 64-bit (Intel/AMD)
+SPACESIM — KEPLER RUN 3D / 0.2
+Portable dla Windows 10/11 x64 (Intel/AMD), OpenGL 3.3
 
-URUCHOMIENIE — BEZ INSTALACJI
+URUCHOMIENIE BEZ INSTALACJI
 
-1. Kliknij ZIP prawym przyciskiem i wybierz „Wyodrębnij wszystkie”.
-2. Otwórz wypakowany folder SpaceSim-0.1-win-x64-portable.
-3. Uruchom SpaceSim.exe zwykłym dwuklikiem.
+1. Kliknij ZIP prawym przyciskiem → „Wyodrębnij wszystkie”.
+2. Otwórz folder SpaceSim-0.2-3D-win-x64-portable.
+3. Uruchom SpaceSim.exe.
 
-Nie uruchamiaj gry bezpośrednio wewnątrz ZIP-a.
-Zachowaj obok EXE plik SpaceSim.pck i cały folder data_SpaceSim.Game_windows_x86_64.
-Gra zawiera Godota i .NET. Nie wymaga instalowania ich ani uprawnień administratora.
-Do gry nie jest potrzebne połączenie z Internetem.
+Nie uruchamiaj gry wewnątrz ZIP-a. Zachowaj obok EXE plik SpaceSim.pck
+oraz cały folder data_SpaceSim.Game_windows_x86_64.
+Godot i .NET są dołączone; nie trzeba instalacji ani administratora.
+Gra działa bez Internetu.
 
-PIERWSZY KURS
+PIERWSZY KURS — Z AUTOPILOTEM
 
-Zaczynasz obok kopalni Kepler.
-E — zadokuj, B — kup rudę, E — odłącz dok.
-A/D lub strzałki lewo/prawo — obrót.
-W/S lub strzałki góra/dół — ciąg do przodu / wstecz.
-Spacja — hamowanie.
-Poleć w prawo do rafinerii Helios. Wyhamuj w obrębie okręgu wokół stacji.
-E — zadokuj, V — sprzedaj rudę.
-P — pauza / kontynuacja. Przyciski handlu są również na prawym panelu.
+G — podejdź i zadokuj w kopalni Kepler.
+B — kup 10 rudy; cel zmieni się na rafinerię Helios.
+G — odleć do Helios i zadokuj. Lot trwa kilkadziesiąt sekund.
+V — sprzedaj rudę i obserwuj produkcję metalu.
+TAB — mapa; kliknij stację, aby wybrać cel. C — zmień kamerę.
 
-WERSJA PROTOTYPOWA
+STEROWANIE RĘCZNE
 
-Działają pilotaż, dokowanie, handel, produkcja oraz transportowiec AI.
-Nie ma jeszcze zapisu gry: po zamknięciu postęp przepada.
-Brak walki i wielu sektorów. Po nasyceniu magazynu metalu handel może stanąć.
+W/S — ciąg przód/tył. A/D — przesunięcie w bok. Q/Z — góra/dół.
+Strzałki lub prawy przycisk myszy + ruch myszy — kierunek lotu.
+Shift — dopalacz podczas przyspieszania. Spacja — hamowanie.
+E — dokowanie/odłączenie. T — zmiana celu. G — autopilot/wyłączenie.
+B/V — kup/sprzedaj 10 rudy. C — kamera zza statku/pokładowa.
+P lub Esc — pauza. Tab — mapa.
 
-W RAZIE PROBLEMU
+Dokuj przy świecącym porcie (do 75 m, prędkość poniżej 25 m/s).
+Sterowanie ręczne przerywa autopilota. Na mapie symulacja działa dalej.
 
-Jeżeli gra nie otwiera okna lub pojawia się komunikat, zachowaj jego treść
-albo zrzut ekranu i prześlij go w rozmowie. Nie trzeba instalować dodatkowych narzędzi.
-Log Godota może zostać zapisany w folderze danych aplikacji bieżącego użytkownika.
-Wydanie nie jest podpisane cyfrowo; nie zmieniaj zabezpieczeń komputera firmowego.
+TO JEST PROTOTYP
 
-Weryfikacja twórcy: eksport Windows i kompletność bibliotek sprawdzone;
-testy gry i samodzielnego eksportu wykonane na Linux. Windows wymaga jeszcze próby uruchomienia.
+Nie ma jeszcze zapisu — po zamknięciu postęp przepada. Brak walki,
+wielu sektorów i budowy floty. Planeta jest tłem, bez lądowania.
+Rafineria może wypełnić magazyn metalu i zatrzymać handel.
+Kolizje dotyczą gracza i stacji/asteroid; nie zadają obrażeń.
 
-Licencje wykorzystanych bibliotek: folder licenses.
+Jeżeli pojawi się błąd, prześlij treść komunikatu albo zrzut ekranu.
+Wydanie nie jest podpisane cyfrowo. Log może trafić do folderu danych
+aplikacji bieżącego użytkownika. Testy sceny i gry wykonano na Linux;
+eksport Windows sprawdzono pod kątem kompletności, bez uruchomienia na Windows.
+
+Licencje bibliotek: folder licenses. Sumy plików: SHA256SUMS.txt.

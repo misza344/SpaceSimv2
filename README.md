@@ -1,78 +1,98 @@
-# SpaceSim — First Cargo
+# SpaceSim — Kepler Run 3D
 
-Pierwszy grywalny prototyp gry ekonomicznej w kosmosie: **2D, PC, Godot 4.6.3 .NET + C#**. Symulacja działa w osobnej bibliotece .NET 8, bez zależności od Godota.
+**Kosmiczny prototyp 3D na PC, Godot 4.6.3 .NET + C#.** Pilotuj statek, kup rudę w kopalni Kepler i dostarcz ją do rafinerii Helios. Transportowiec AI pracuje niezależnie, korzystając z tych samych magazynów i pieniędzy.
 
-![Prototyp po zakupie pierwszego ładunku](docs/prototype.png)
+![SpaceSim 3D — widok zza statku](docs/prototype-3d.png)
+
+## Pobierz i graj — bez instalacji
+
+**[Pobierz SpaceSim 0.2 3D portable — Windows 64-bit](https://github.com/misza344/SpaceSimv2/raw/refs/heads/main/dist/SpaceSim-0.2-3D-win-x64-portable.zip)**
+
+1. Pobierz ZIP. Kliknij prawym przyciskiem → **Wyodrębnij wszystkie**.
+2. Otwórz wypakowany folder i uruchom **SpaceSim.exe**.
+3. Zachowaj obok EXE plik `SpaceSim.pck` i folder `data_SpaceSim.Game_windows_x86_64`.
+
+Paczka zawiera Godota i .NET; nie wymaga ich instalacji ani uprawnień administratora. Gra działa offline. Wymaga Windows 10/11 x64 (Intel/AMD) i obsługi OpenGL 3.3. Nie uruchamiaj jej wewnątrz archiwum ZIP.
+
+Wersja 0.1 w `dist/` jest archiwalnym prototypem 2D. Aktualna wersja to **0.2 3D**.
+
+## Pierwszy kurs — najprościej
+
+- Naciśnij **G**. Autopilot podejdzie do portu kopalni i zadokuje.
+- Naciśnij **B**, aby kupić 10 rudy. Cel nawigacji automatycznie zmieni się na Helios.
+- Ponownie **G** — statek odłączy się od doku, przeleci korytarzem nad sektorem i zadokuje przy rafinerii. Lot trwa kilkadziesiąt sekund.
+- **V** — sprzedaj rudę. Kredyty wzrosną, a rafineria zacznie produkować metal.
+- **TAB** otwiera mapę. Kliknięcie stacji wybiera cel. **C** zmienia kamerę.
+
+Autopilot ma rzeczywisty czas podróży; nie teleportuje statku. Możesz w każdej chwili przejąć sterowanie klawiaturą lub przerwać go klawiszem G. Symulacja działa dalej podczas oglądania mapy.
+
+## Sterowanie ręczne
+
+| Klawisz | Działanie |
+|---|---|
+| W / S | Ciąg do przodu / wstecz |
+| A / D | Przesunięcie w lewo / prawo |
+| Q / Z | Wznoszenie / opadanie |
+| Strzałki lub przytrzymany prawy przycisk myszy + ruch | Kierunek lotu: obrót i pochylenie |
+| Shift | Dopalacz podczas przyspieszania |
+| Spacja | Hamowanie |
+| T | Zmień cel nawigacji |
+| G | Autopilot do wybranego portu / przerwij |
+| E | Dokowanie / odłączenie doku |
+| B / V | Kup / sprzedaj do 10 rudy |
+| C | Kamera zza statku / kamera pokładowa |
+| Tab | Mapa sektora |
+| P / Esc | Pauza / kontynuacja |
+
+Dokowanie ręczne: podejdź do **świecącego portu**, nie do środka stacji; odległość do 75 m i prędkość poniżej 25 m/s. HUD pokazuje odległość do portu. Statek ma bezwładność i wspomagane hamowanie. Kamera pokładowa jest prostym widokiem z nosa statku, bez wymodelowanego wnętrza.
 
 ## Co działa
 
-- Pilotaż z góry: obrót, ciąg, bezwładność, hamowanie i ograniczony obszar sektora.
-- Dokowanie przy stacji wymaga dystansu do 85 m i prędkości do 35 m/s.
-- Kopalnia produkuje rudę, rafineria zużywa 2 jednostki rudy na 1 metal.
-- Zakup i sprzedaż przenoszą rzeczywisty towar oraz kredyty; ceny zależą od zapasów.
-- Transportowiec AI sam kupuje, przewozi i sprzedaje rudę. Pokazuje powód oczekiwania.
-- HUD: stan ładowni, pieniądze, prędkość, ceny, zapasy stacji i praca AI. Pauza zatrzymuje cały świat.
+- Rzeczywisty ruch w trzech osiach, ciąg, dopalacz, boczne/pionowe silniki i dwie kamery.
+- Przestrzenne stacje, proceduralne statki i asteroidy, planeta z atmosferą, gwiazdy i oświetlenie.
+- Kolizje statku gracza ze stacjami i asteroidami: zatrzymują lub odbijają ruch, bez zadawania obrażeń. Kolizje są liczone po odcinku ruchu, także przy dużej prędkości.
+- Autopilot z korytarzami podejścia, wybór celu, mapa sektora i wskaźniki obiektów poza ekranem.
+- Handel przenoszący rzeczywisty towar oraz kredyty; ceny zależne od zapasów.
+- Kopalnia produkuje rudę, rafineria zamienia 2 rudy na metal, a Kurier AI sam wykonuje kursy. Przyczyny oczekiwania są widoczne.
+- HUD, przyciski handlu, pauza i proste proceduralne dźwięki silników oraz poleceń.
 
-To mały wycinek projektu, nie kompletna gra. Nie ma jeszcze walki, zapisu, rezerwacji dostaw, kolizji kadłubów, przełączania statków ani wielu sektorów. Stacje i statki mają grafikę proceduralną. Rafineria gromadzi metal i ma skończony budżet: po zapełnieniu magazynu lub wyczerpaniu pieniędzy handel zatrzymuje się zgodnie z regułami. Dalszy łańcuch produkcyjny i odbiorcy metalu są następnym etapem.
+To nadal prototyp: **nie ma zapisu gry, walki, wielu sektorów, własnej floty ani budowy stacji**. Postęp przepada po zamknięciu. Rafineria ma skończony budżet i magazyn metalu; docelowy dalszy obieg produkcji pozostaje do dodania. Autopilot obsługuje ten konkretny sektor, a nie dowolną proceduralną galaktykę. Planeta jest tłem, bez lądowania. Statki nie zderzają się ze sobą.
 
-## Granie na Windows — portable, bez instalacji
+## Praca nad kodem
 
-**[Pobierz SpaceSim portable — ZIP, około 71 MB](https://github.com/misza344/SpaceSimv2/raw/refs/heads/main/dist/SpaceSim-0.1-win-x64-portable.zip)** (Windows 10/11, Intel/AMD 64-bit).
+Windows: zainstaluj .NET SDK **8.0.426** i Godot **4.6.3 .NET**. W katalogu głównym:
 
-1. Pobierz ZIP i wybierz **Wyodrębnij wszystkie**.
-2. Otwórz wypakowany folder i uruchom **SpaceSim.exe**.
-3. Pozostaw obok niego `SpaceSim.pck` oraz folder `data_SpaceSim.Game_windows_x86_64`.
-
-Nie potrzeba administratora, instalatora, Godota ani .NET — biblioteki są dołączone. Nie uruchamiaj gry bezpośrednio z ZIP-a. Sterowanie i pierwszy kurs opisano niżej oraz w `CZYTAJ-MNIE.txt` w paczce. Postęp nie jest jeszcze zapisywany.
-
-## Praca nad kodem na Windows
-
-1. Zainstaluj **.NET SDK 8.0.426** oraz **Godot 4.6.3 .NET** (wersja standardowa nie obsługuje C#).
-2. W katalogu repozytorium uruchom:
-
-   ```powershell
-   dotnet restore SpaceSim.sln --locked-mode
-   dotnet build SpaceSim.sln --no-restore
-   dotnet test SpaceSim.sln --no-build --no-restore
-   ```
-
-3. Zaimportuj `src/SpaceSim.Game/project.godot` w Godocie .NET i naciśnij **F6/F5**.
-
-Pierwsze uruchomienie wymaga dostępu do NuGet. Windows jest planowaną pierwszą platformą wydania; bieżący prototyp zweryfikowano na Linux x86_64. Wyeksportowano również samodzielną paczkę Windows x64 z .NET. Sprawdzono kompletność bibliotek i integralność ZIP-a, ale pliku Windows EXE nie uruchamiano na Windows. Analogiczny eksport Linux przeszedł test uruchomienia bez zewnętrznego .NET.
-
-## Linux / środowisko chmurowe
-
-```bash
-bash scripts/setup.sh       # pobiera narzędzia, sprawdza SHA-512, odtwarza zależności i buduje
-bash scripts/check.sh       # testy rdzenia + import i smoke test w Godocie
-bash scripts/run.sh         # gra; wymaga sesji graficznej
-bash scripts/run.sh --editor
+```powershell
+dotnet restore SpaceSim.sln --locked-mode
+dotnet build SpaceSim.sln --no-restore
+dotnet test SpaceSim.sln --no-build --no-restore
 ```
 
-Instalator jest przeznaczony dla Linux x86_64; wymaga `curl`, `tar`, `unzip` i bibliotek systemowych obsługujących .NET/Godota. Instaluje lokalnie do ignorowanego `.tools/`, bez uprawnień administratora. Do bezpośrednich poleceń `dotnet` użyj wcześniej `source scripts/env.sh`. Skrypty korzystają z blokad wersji NuGet. W środowisku Codex sandbox może blokować systemowy mutex NuGet; komendy .NET wymagają wtedy uruchomienia z zatwierdzonym szerszym dostępem.
+Zaimportuj `src/SpaceSim.Game/project.godot` w Godocie .NET i uruchom F5. Zwykły Godot bez .NET nie obsługuje C#.
 
-Bez ekranu można sprawdzić grę przez `bash scripts/run.sh --headless -- --smoke-test`. W zwykłym uruchomieniu headless gra działa bez obrazu aż do przerwania procesu.
+Linux x86_64 / chmura:
 
-## Pierwszy kurs
+```bash
+bash scripts/setup.sh
+bash scripts/check.sh
+bash scripts/run.sh           # wymaga ekranu graficznego
+bash scripts/run.sh --editor
+bash scripts/run.sh --headless -- --smoke-test
+bash scripts/export-windows.sh
+```
 
-1. Zaczynasz obok kopalni Kepler. **E** — zadokuj, **B** — kup do 10 jednostek rudy.
-2. **E** — odłącz dok. **A/D** obracają, **W** daje ciąg, **S** ciąg wsteczny; działają też strzałki.
-3. Leć w prawo do rafinerii Helios. **Spacja** hamuje.
-4. W obrębie okręgu dokowania wyhamuj i naciśnij **E**, następnie **V**, aby sprzedać do 10 rudy.
-5. Obserwuj wzrost zapasu metalu oraz niezależnie pracującego Kuriera AI. **P** włącza i wyłącza pauzę. Handel i dokowanie mają także przyciski na panelu.
+Narzędzia trafiają do ignorowanego `.tools/`. Skrypty wymagają `curl`, `tar`, `unzip`, a eksport również Pythona 3. `source scripts/env.sh` aktywuje narzędzia dla bezpośrednich poleceń. W chmurowym sandboxie .NET może wymagać zatwierdzonego szerszego dostępu do systemowego mutexa NuGet.
+
+Eksporter weryfikuje SHA-512 oficjalnych szablonów Godota, odtwarza zablokowane zależności, dołącza runtime .NET, instrukcję i licencje. Wynik: `dist/SpaceSim-0.2-3D-win-x64-portable.zip` oraz suma SHA-256. Wydanie nie jest podpisane cyfrowo. Pliki zależności edytora i konfiguracji ExportRelease mają osobne lockfile'y.
+
+## Weryfikacja
+
+14 testów obejmuje gospodarkę, dwie godziny symulacji, ruch pionowy, dokowanie 3D, kolizję przy dopalaczu, hamowanie i pełny kurs autopilota bez teleportacji. Test uruchomionej sceny Godota wykonuje zakup, przelot, sprzedaż, pracę AI oraz przełączenie kamer i mapy. Kontrole wykonujemy na Linux; eksport Windows sprawdzamy pod kątem kompletności i integralności, ale nie uruchamialiśmy EXE na Windows. Nie deklarujemy jeszcze wymagań wydajnościowych poza obsługą renderera — trzeba je zmierzyć na komputerze docelowym.
 
 ## Struktura
 
-- `src/SpaceSim.Core` — autorytatywny stan świata, stały krok 60 Hz, pilotaż, gospodarka i automat transportowy.
-- `src/SpaceSim.Game` — widok Godota, klawiatura i panel handlu; odczytuje stan tego samego świata.
-- `tests/SpaceSim.Core.Tests` — testy transferu towarów i pieniędzy, limitów, dokowania, produkcji, AI i powtarzalności. Próba 2 godzin czasu symulacji sprawdza bilans zasobów.
-- `docs/SpaceSim_Research_X4_i_plan.md` — oryginalny dokument badawczy użytkownika; propozycje dalszego zakresu.
-- `docs/technology.md` — wybrany kierunek i granice pierwszego prototypu.
-
-Symulacja jest jednowątkowa. Godot wywołuje jeden krok na `_PhysicsProcess` przy 60 Hz. Produkcja i decyzje handlowe mają rzadsze aktualizacje. To punkt wyjścia do pomiarów, bez obietnicy konkretnej maksymalnej liczby jednostek.
-
-## Budowanie paczki portable
-
-Po `bash scripts/setup.sh` uruchom `bash scripts/export-windows.sh` na Linux x86_64. Skrypt pobiera oficjalne szablony eksportu Godot 4.6.3 .NET (około 1,1 GiB, zachowywane w `.tools`), weryfikuje SHA-512, eksportuje Windows x64 z własnym runtime .NET i tworzy ZIP oraz sumę SHA-256 w ignorowanym `dist/`. W paczce znajdują się instrukcje, biblioteki i wymagane licencje. Do wykonania skryptu potrzebny jest też Python 3. Eksport nie jest podpisany cyfrowo.
-
-Godot wskazuje rozwiązanie `SpaceSim.sln` w katalogu głównym przez `dotnet/project/solution_directory`, dzięki czemu kompilacja z edytora i eksport korzystają z tych samych projektów. Identyfikatory runtime `win-x64` i `linux-x64` są zapisane w projektach i lockfile'ach. Preset `Linux Validation` służy do sprawdzenia wyeksportowanej gry na maszynie budującej.
+- `src/SpaceSim.Core` — stan świata, Vector3, ruch, kolizje, trasy, gospodarka. Bez zależności od Godota.
+- `src/SpaceSim.Game` — scena 3D, proceduralna geometria i shadery, kamera, dźwięk i HUD.
+- `tests/SpaceSim.Core.Tests` — testy reguł i bilansu zasobów.
+- `docs/SpaceSim_Research_X4_i_plan.md` — oryginalny research; zachowany bez zmian.
+- `docs/technology.md` — obecna architektura i dalszy kierunek.

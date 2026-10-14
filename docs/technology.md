@@ -1,21 +1,27 @@
-# Kierunek techniczny
+# Kierunek techniczny — wersja 0.2
 
-Ustalenia rozmowy: gra 2D na PC, bez wymaganego wsparcia telefonów. Realizujemy Godot + C#, z własnym rdzeniem symulacji. Nie budujemy od podstaw renderera ani edytora. Windows to proponowana pierwsza platforma wydania; obecne testy wykonano na Linux.
+14.10.2026: na życzenie użytkownika zmieniono kierunek z 2D na **3D na PC**. Nadal używamy Godota 4.6.3 .NET oraz C#. Nie ma wymogu obsługi telefonów. Grę udostępniamy jako ZIP portable dla Windows x64, z własnym runtime .NET; użytkownik nie potrzebuje instalacji ani administratora.
 
-## Pierwszy wycinek
+## Architektura
 
-Jeden sektor, kopalnia, rafineria, statek gracza i niezależny transportowiec AI. Kopalnia tworzy rudę z abstrakcyjnego złoża co 2 sekundy, rafineria przetwarza 2 rudy na metal co 3 sekundy. Handel zmienia stan magazynów i kont obu stron, ceny reagują na zapas, a produkcja zatrzymuje się przy brakach lub pełnym magazynie. To jawne uproszczenie wcześniejszej propozycji ośmiu towarów.
+`SpaceSim.Core` jest autorytatywnym stanem świata, niezależnym od Godota. Używa `System.Numerics.Vector3`, stałego kroku 1/60 s, identyfikatorów jednostek i stacji, całkowitych liczników towarów oraz `decimal` dla kredytów. Godot odczytuje ten stan, rysuje scenę i przekazuje polecenia. Produkcja i decyzje handlowe zachodzą rzadziej niż aktualizacja ruchu.
 
-Rdzeń używa stabilnych identyfikatorów, własnego stanu świata i System.Numerics.Vector2. Nie przechowuje węzłów Godota. Interfejs wywołuje polecenia; nie utrzymuje osobnych kopii ładunków i pieniędzy. Krok wynosi 1/60 s, gospodarka aktualizuje się w wielokrotnościach kroku. Kredyty używają decimal, towary liczników całkowitych. Testy sprawdzają bilans transferów i jawnie wytworzone/zużyte zasoby.
+Ruch obsługuje obrót, pochylenie, ciąg, silniki boczne i pionowe, dopalacz i hamowanie. To wspomagany model lotu, bez pełnej fizyki orbitalnej i obrotu wokół osi podłużnej. Kolizja gracza sprawdza odcinek między pozycjami względem sfer przeszkód, aby ograniczyć przenikanie przy dużej prędkości. Bryły kolizji są przybliżeniami, a nie dokładnymi siatkami. W tym etapie kontakt nie zadaje obrażeń.
 
-Nie deklarujemy jeszcze deterministyczności pomiędzy różnymi platformami: ruch używa float. Test powtarzalności dotyczy tego samego środowiska i identycznej sekwencji wejść.
+Port ma osobną pozycję przed stacją. Gracz i AI faktycznie przemieszczają się do celu. Autopilot korzysta z korytarzy wyjścia, przelotu nad pasem asteroid i podejścia do portu. Planer jest dostosowany do obecnego sektora; nie jest ogólnym algorytmem nawigacji po dowolnie generowanym świecie. Ruch ręczny wyłącza autopilota. Statki nie zderzają się ze sobą; Kurier ma oddzielny punkt dokowania obok portu gracza.
 
-## Następne etapy
+Warstwa Godota: kamera pościgowa i pokładowa, proceduralne modele statków i stacji, zdeformowane asteroidy, sferyczna planeta z shaderem terenu i atmosfery, shader gwiazd, oświetlenie oraz HUD i mapa sektora. Renderer Compatibility (OpenGL 3.3) pozostaje rozsądnym punktem startowym dla różnych komputerów. Nie zakładamy wydajności bez pomiarów na sprzęcie użytkownika.
 
-1. Dodać odbiorców metalu i dalszą produkcję, aby zamknąć obieg gospodarczy.
-2. Zapis/odczyt z wersją formatu oraz test wznowienia świata w trakcie transportu.
-3. Własny drugi statek, rozkazy gracza i rezerwacje towaru, budżetu oraz magazynu.
-4. Wiele sektorów i spójne przejście między symulacją lokalną i uproszczoną.
-5. Walka, straty dostaw i eskorta wpływająca na gospodarkę.
+## Zakres gospodarki
 
-Wydajność i balans należy mierzyć przy rosnącej liczbie jednostek. Wersja 0.1 nie jest benchmarkiem dużej galaktyki.
+Kopalnia tworzy rudę z abstrakcyjnego złoża co 2 sekundy; rafineria przetwarza 2 rudy na metal co 3 sekundy. Handel przenosi towar i pieniądze; produkcja zatrzymuje się przy braku wejścia lub pełnym magazynie. To jawne uproszczenie proponowanych w researchu ośmiu towarów. Zachowujemy bilans zasobów, zamiast dublować ładunki na potrzeby grafiki.
+
+## Następne kroki
+
+1. Odbiorcy metalu i dalsze etapy produkcji zamykające obieg gospodarczy.
+2. Wersjonowany zapis/odczyt świata, także w trakcie lotu i rezerwacji.
+3. Drugi statek gracza, zlecenia i rezerwacje magazynów, towarów oraz pieniędzy.
+4. Wiele sektorów i spójne przejście pomiędzy dokładną a uproszczoną symulacją.
+5. Walka, straty dostaw i eskorta; rozbudowa modeli i efektów po potwierdzeniu pętli gry.
+
+Oryginalny research pozostaje dokumentem źródłowym. Nie deklarujemy deterministyczności ruchu float pomiędzy różnymi platformami ani maksymalnej liczby jednostek. Test powtarzalności dotyczy jednego środowiska.

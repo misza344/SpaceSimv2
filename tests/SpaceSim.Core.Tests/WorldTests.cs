@@ -25,7 +25,7 @@ public class WorldTests
         Assert.Equal(80, w.Mine.Ore);
         Assert.Equal(10, w.Player.Ore);
         w.ToggleDock();
-        w.Player.Position = w.Refinery.Position;
+        w.Player.Position = w.Refinery.DockPosition;
         w.ToggleDock();
         Assert.True(w.SellOre(w.Player, 10).Success);
         Assert.Equal(10, w.Refinery.Ore);
@@ -52,14 +52,14 @@ public class WorldTests
     public void DockRequiresProximityAndLowSpeed()
     {
         var w = new World();
-        w.Player.Velocity = new Vector2(100, 0);
+        w.Player.Velocity = new Vector3(100, 0, 0);
         w.ToggleDock();
         Assert.Null(w.Player.DockedAt);
-        w.Player.Velocity = Vector2.Zero;
-        w.Player.Position = Vector2.Zero;
+        w.Player.Velocity = Vector3.Zero;
+        w.Player.Position = Vector3.Zero;
         w.ToggleDock();
         Assert.Null(w.Player.DockedAt);
-        w.Player.Position = w.Mine.Position;
+        w.Player.Position = w.Mine.DockPosition;
         w.ToggleDock();
         Assert.Equal("mine", w.Player.DockedAt);
     }
@@ -74,7 +74,7 @@ public class WorldTests
         w.ToggleDock();
         w.BuyOre(w.Player, 10);
         w.ToggleDock();
-        w.Player.Position = w.Refinery.Position;
+        w.Player.Position = w.Refinery.DockPosition;
         w.ToggleDock();
         w.SellOre(w.Player, 10);
         for (var i = 0; i < 600; i++) w.Step();
@@ -105,7 +105,7 @@ public class WorldTests
         var w = new World();
         w.Refinery.Ore = Station.Capacity;
         w.Refinery.Metal = Station.Capacity;
-        for (var i = 0; i < 60 * 30; i++) w.Step();
+        for (var i = 0; i < 60 * 120; i++) w.Step();
         Assert.Equal(20, w.Trader.Ore);
         Assert.Equal(0, w.DeliveredOre);
         Assert.Contains("pełny magazyn", w.Trader.Status);
@@ -118,7 +118,7 @@ public class WorldTests
         w.ToggleDock();
         w.BuyOre(w.Player, 10);
         w.ToggleDock();
-        w.Player.Position = w.Refinery.Position;
+        w.Player.Position = w.Refinery.DockPosition;
         w.ToggleDock();
         w.Refinery.Credits = 25;
         Assert.Equal(1, w.SellOre(w.Player, 10).Quantity);
@@ -140,5 +140,82 @@ public class WorldTests
         Assert.Equal(a.Trader.Position, b.Trader.Position);
         Assert.Equal(a.Refinery.Ore, b.Refinery.Ore);
         Assert.InRange(a.Player.Velocity.Length(), 0, 220);
+    }
+    [Fact]
+    public void PitchAndVerticalThrustersMoveOutOfTheOldPlane()
+    {
+        var w = new World();
+        var start = w.Player.Position;
+        for (int i = 0; i < 90; i++) w.Step(new PilotInput(0, 0, false, Pitch: 1, Lift: 1));
+        Assert.True(w.Player.Position.Y > start.Y + 20);
+        Assert.InRange(w.Player.Pitch, 1, 1.45f);
+        Assert.True(w.Player.Forward.Y > .8f);
+    }
+
+    [Fact]
+    public void DockingUsesHeightAsWellAsHorizontalDistance()
+    {
+        var w = new World();
+        w.Player.Position = w.Mine.DockPosition + Vector3.UnitY * 90;
+        w.ToggleDock();
+        Assert.Null(w.Player.DockedAt);
+        w.Player.Position = w.Mine.DockPosition + Vector3.UnitY * 40;
+        w.ToggleDock();
+        Assert.Equal("mine", w.Player.DockedAt);
+    }
+
+    [Fact]
+    public void BoostCannotTunnelThroughStationHull()
+    {
+        var w = new World();
+        w.Player.Position = w.Mine.Position + Vector3.UnitZ * 72;
+        w.Player.Velocity = -Vector3.UnitZ * World.BoostSpeed;
+        w.Step(new PilotInput(0, 1, false, Boost: true));
+        Assert.Equal(1, w.CollisionCount);
+        Assert.True(Vector3.Distance(w.Player.Position, w.Mine.Position) >= 68);
+        Assert.True(w.Player.Velocity.Length() < 60);
+    }
+
+    [Fact]
+    public void AutopilotCompletesPlayerTradeRouteWithoutTeleportOrCollision()
+    {
+        var w = new World();
+        w.ToggleAutopilot();
+        FlyUntilDocked(w, "mine");
+        w.PlayerBuy();
+        Assert.Equal("refinery", w.Target.Id);
+        Assert.Equal(10, w.Player.Ore);
+        w.ToggleAutopilot();
+        FlyUntilDocked(w, "refinery");
+        w.PlayerSell();
+        Assert.Equal(10, w.PlayerDeliveredOre);
+        Assert.True(w.Player.Credits > 1000);
+        Assert.Equal(0, w.CollisionCount);
+        w.ToggleAutopilot();
+        FlyUntilDocked(w, "mine");
+        Assert.Equal(0, w.CollisionCount);
+    }
+
+    [Fact]
+    public void ManualInputCancelsAutopilotAndBrakesReduceSpeed()
+    {
+        var w = new World();
+        w.ToggleAutopilot();
+        w.Step(new PilotInput(1, 0, false));
+        Assert.False(w.Autopilot);
+        w.Player.Velocity = new Vector3(80, 20, 0);
+        for (int i = 0; i < 90; i++) w.Step(new PilotInput(0, 0, true));
+        Assert.True(w.Player.Velocity.Length() < 1);
+    }
+
+    private static void FlyUntilDocked(World world, string expectedStation)
+    {
+        for (int i = 0; i < 60 * 180 && world.Player.DockedAt is null; i++)
+        {
+            Vector3 before = world.Player.Position;
+            world.Step();
+            Assert.True(Vector3.Distance(before, world.Player.Position) < 3, "Autopilot teleported the ship.");
+        }
+        Assert.Equal(expectedStation, world.Player.DockedAt);
     }
 }

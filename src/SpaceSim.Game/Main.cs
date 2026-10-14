@@ -1,180 +1,216 @@
 using Godot;
 using SpaceSim.Core;
-using NVector = System.Numerics.Vector2;
+using NVector = System.Numerics.Vector3;
 
-public partial class Main : Node2D
+public partial class Main : Node3D
 {
-    private World _world = new();
-    private bool _paused;
+    public World Universe { get; } = new();
+    public Camera3D FlightCamera { get; private set; } = null!;
+    public bool Paused { get; private set; }
+    public bool Cockpit { get; private set; }
+    public bool MapOpen { get; private set; }
+    private Node3D _player = null!, _trader = null!;
+    private Node3D _mine = null!, _refinery = null!;
+    private FlightHud _hud = null!;
+    private Vector2 _mouseDelta;
     private bool _smoke;
-    private int _smokeFrames;
-    private readonly Vector2 _origin = new(475, 418);
-    private readonly Color _cyan = new("63e3ed"), _amber = new("ffbc70"), _muted = new("8b9daf"), _white = new("e9f1f7");
-    private readonly List<(Vector2 Point, float Size, float Alpha)> _stars = [];
-    private Label _traderStatus = null!;
-    private Button _dock = null!, _buy = null!, _sell = null!;
-    private Font Font => ThemeDB.FallbackFont;
+    private int _frames;
+    private AudioStreamPlayer _engine = null!, _beep = null!;
 
     public override void _Ready()
     {
-        var random = new Random(42);
-        for (int i = 0; i < 200; i++) _stars.Add((new Vector2(random.Next(18, 950), random.Next(140, 700)), i % 7 == 0 ? 1.5f : 0.7f, 0.15f + (float)random.NextDouble() * 0.5f));
-        _dock = AddButton("E   Zadokuj / odłącz", new(995, 425), () => _world.ToggleDock());
-        _buy = AddButton("B   Kup 10 rudy", new(995, 472), () => _world.PlayerBuy());
-        _sell = AddButton("V   Sprzedaj 10 rudy", new(995, 519), () => _world.PlayerSell());
-        _traderStatus = new Label { Position = new(995, 644), Size = new(250, 61), AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        _traderStatus.AddThemeFontSizeOverride("font_size", 13);
-        _traderStatus.AddThemeColorOverride("font_color", _muted);
-        AddChild(_traderStatus);
-        AddButton("P   Pauza / kontynuuj", new(995, 712), () => _paused = !_paused, false);
+        BuildEnvironment();
+        _mine = SpaceGeometry.Station(this, Universe.Mine);
+        _refinery = SpaceGeometry.Station(this, Universe.Refinery);
+        SpaceGeometry.Asteroids(this, Universe);
+        _player = SpaceGeometry.Ship(this, false);
+        _trader = SpaceGeometry.Ship(this, true);
+        _trader.Scale = Vector3.One * 1.5f;
+        FlightCamera = new Camera3D { Fov = 68, Near = .15f, Far = 16000, Current = true };
+        AddChild(FlightCamera);
+        UpdateShips();
+        UpdateCamera(1, true);
+        var canvas = new CanvasLayer(); AddChild(canvas);
+        _hud = new FlightHud { Game = this }; canvas.AddChild(_hud);
+        _engine = new AudioStreamPlayer { Stream = Tone(52, 1, true), VolumeDb = -40 };
+        AddChild(_engine); _engine.Play();
+        _beep = new AudioStreamPlayer { Stream = Tone(680, .12f, false), VolumeDb = -21 }; AddChild(_beep);
         _smoke = OS.GetCmdlineUserArgs().Contains("--smoke-test");
-        if (_smoke)
-        {
-            _world.ToggleDock();
-            _world.PlayerBuy();
-            if (_world.Player.Ore != 10) { GD.PushError("SMOKE FAIL: player trade"); GetTree().Quit(1); }
-        }
     }
 
-    private Button AddButton(string text, Vector2 position, Action action, bool requiresRunning = true)
+    private void BuildEnvironment()
     {
-        var button = new Button { Text = text, Position = position, Size = new(250, 38), FocusMode = Control.FocusModeEnum.None };
-        button.AddThemeFontSizeOverride("font_size", 16);
-        var style = new StyleBoxFlat { BgColor = new Color("152d3a"), BorderColor = new Color("305363"), BorderWidthBottom = 1, BorderWidthTop = 1, BorderWidthLeft = 1, BorderWidthRight = 1, CornerRadiusBottomLeft = 5, CornerRadiusBottomRight = 5, CornerRadiusTopLeft = 5, CornerRadiusTopRight = 5 };
-        button.AddThemeStyleboxOverride("normal", style);
-        var hover = (StyleBoxFlat)style.Duplicate(); hover.BgColor = new Color("234958");
-        button.AddThemeStyleboxOverride("hover", hover);
-        button.Pressed += () => { if (!_paused || !requiresRunning) action(); QueueRedraw(); };
-        AddChild(button);
-        return button;
+        var env = new Godot.Environment
+        {
+            BackgroundMode = Godot.Environment.BGMode.Sky,
+            Sky = new Sky { SkyMaterial = new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/space.gdshader") }, RadianceSize = Sky.RadianceSizeEnum.Size128 },
+            AmbientLightSource = Godot.Environment.AmbientSource.Color,
+            AmbientLightColor = new Color("718cae"), AmbientLightEnergy = .32f,
+            ReflectedLightSource = Godot.Environment.ReflectionSource.Disabled,
+            TonemapMode = Godot.Environment.ToneMapper.Aces,
+            TonemapExposure = .9f
+        };
+        AddChild(new WorldEnvironment { Environment = env });
+        AddChild(new DirectionalLight3D { RotationDegrees = new(-32, -35, 0), LightColor = new Color("ffe4bd"), LightEnergy = 1.1f, ShadowEnabled = true, DirectionalShadowMaxDistance = 650 });
+        AddChild(new DirectionalLight3D { RotationDegrees = new(25, 145, 0), LightColor = new Color("577ab7"), LightEnergy = .45f });
+        var planet = SpaceGeometry.Sphere(this, 1050, new(1300, -640, -4100), new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/planet.gdshader") }, 96);
+        planet.RotationDegrees = new(0, 25, 22);
+        SpaceGeometry.Sphere(this, 1090, planet.Position, new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/atmosphere.gdshader") }, 96);
+        var distantMoon = SpaceGeometry.Sphere(this, 190, new(-1500, 850, -5000), SpaceGeometry.Material("85838b", .1f, .9f), 40);
+        distantMoon.RotationDegrees = new(0, 60, 0);
     }
 
     public override void _PhysicsProcess(double delta)
     {
-        if (!_paused)
+        if (!Paused)
         {
-            var turn = (Input.IsPhysicalKeyPressed(Key.D) || Input.IsPhysicalKeyPressed(Key.Right) ? 1 : 0) - (Input.IsPhysicalKeyPressed(Key.A) || Input.IsPhysicalKeyPressed(Key.Left) ? 1 : 0);
-            var thrust = (Input.IsPhysicalKeyPressed(Key.W) || Input.IsPhysicalKeyPressed(Key.Up) ? 1f : 0) - (Input.IsPhysicalKeyPressed(Key.S) || Input.IsPhysicalKeyPressed(Key.Down) ? 0.45f : 0);
-            _world.Step(new PilotInput(turn, thrust, Input.IsPhysicalKeyPressed(Key.Space)));
+            float yaw = Axis(Key.Right, Key.Left) + _mouseDelta.X * .032f;
+            float pitch = Axis(Key.Up, Key.Down) - _mouseDelta.Y * .032f;
+            var input = MapOpen ? default : new PilotInput(yaw, Axis(Key.W, Key.S), Input.IsPhysicalKeyPressed(Key.Space), pitch, Axis(Key.D, Key.A), Axis(Key.Q, Key.Z), Input.IsPhysicalKeyPressed(Key.Shift));
+            Universe.Step(input);
         }
-        _traderStatus.Text = _world.Trader.Status;
-        _dock.Disabled = _paused;
-        _buy.Disabled = _paused || _world.Player.DockedAt != "mine";
-        _sell.Disabled = _paused || _world.Player.DockedAt != "refinery";
-        if (_smoke && ++_smokeFrames >= 180)
+        _mouseDelta = Vector2.Zero;
+        UpdateShips();
+        UpdateCamera((float)delta);
+        _hud.Refresh();
+        _engine.VolumeDb = Paused || Universe.Player.DockedAt is not null ? -60 : -37 + MathF.Min(Universe.Player.Velocity.Length() / 20, 11);
+        _engine.PitchScale = .7f + Universe.Player.Velocity.Length() / 250;
+        if (_smoke && ++_frames == 35) RunSmokeScenario();
+    }
+
+    private static float Axis(Key positive, Key negative) => (Input.IsPhysicalKeyPressed(positive) ? 1 : 0) - (Input.IsPhysicalKeyPressed(negative) ? 1 : 0);
+
+    private void UpdateShips()
+    {
+        SyncShip(_player, Universe.Player);
+        SyncShip(_trader, Universe.Trader);
+        _mine.GetNode<Node3D>("HabitatRing").Rotation = new(0, 0, Universe.Tick / 60f * .035f);
+        _refinery.GetNode<Node3D>("HabitatRing").Rotation = new(0, 0, -Universe.Tick / 60f * .022f);
+        _player.Visible = !Cockpit;
+    }
+
+    private static void SyncShip(Node3D model, Ship ship)
+    {
+        model.Position = SpaceGeometry.Convert(ship.Position);
+        model.Rotation = new(ship.Pitch, -ship.Heading, 0);
+        foreach (string name in new[] { "PlumeLeft", "PlumeRight" })
         {
-            // Accelerated integration scenario in the actual Godot process.
-            for (int i = 0; i < 7200; i++) _world.Step();
-            if (_world.DeliveredOre <= 0 || _world.Refinery.Metal <= 0)
-            { GD.PushError("SMOKE FAIL: logistics/production"); GetTree().Quit(1); }
-            else { GD.Print($"SMOKE PASS: scene, player purchase, AI delivered {_world.DeliveredOre}, metal {_world.Refinery.Metal}"); GetTree().Quit(); }
+            var plume = model.GetNode<Node3D>(name);
+            plume.Visible = ship.DockedAt is null;
+            plume.Scale = new(1, .3f + MathF.Min(ship.Velocity.Length() / 100, 2), 1);
         }
-        QueueRedraw();
     }
 
-    public override void _UnhandledKeyInput(InputEvent @event)
+    private void UpdateCamera(float delta, bool instant = false)
     {
-        if (@event is not InputEventKey { Pressed: true, Echo: false } key) return;
-        if (key.PhysicalKeycode == Key.P) _paused = !_paused;
-        if (_paused) return;
-        switch (key.PhysicalKeycode)
+        var pos = SpaceGeometry.Convert(Universe.Player.Position);
+        var forward = SpaceGeometry.Convert(Universe.Player.Forward);
+        var right = SpaceGeometry.Convert(Universe.Player.Right);
+        var up = right.Cross(forward).Normalized();
+        Vector3 desired = Cockpit ? pos + up * 1.5f + forward * 4 : pos - forward * 38 + up * 11;
+        FlightCamera.Position = instant ? desired : FlightCamera.Position.Lerp(desired, 1 - MathF.Exp(-8 * delta));
+        var lookAt = pos + forward * (Cockpit ? 100 : 48) + up * 1.5f;
+        var direction = (lookAt - FlightCamera.Position).Normalized();
+        var cameraUp = MathF.Abs(direction.Dot(up)) > .98f ? right : up;
+        FlightCamera.LookAt(lookAt, cameraUp);
+        FlightCamera.Fov = Mathf.Lerp(FlightCamera.Fov, Universe.Player.Velocity.Length() > World.CruiseSpeed ? 79 : 68, .035f);
+    }
+
+    public override void _UnhandledInput(InputEvent input)
+    {
+        if (input is InputEventMouseMotion motion && Input.IsMouseButtonPressed(MouseButton.Right) && !Paused && !MapOpen)
+            _mouseDelta += motion.Relative;
+        if (input is not InputEventKey { Pressed: true, Echo: false } key) return;
+        Act(key.PhysicalKeycode);
+    }
+
+    public void Act(Key key)
+    {
+        if (key == Key.P || key == Key.Escape) { Paused = !Paused; _hud.Refresh(); return; }
+        if (key == Key.Tab) { MapOpen = !MapOpen; _hud.Refresh(); return; }
+        if (key == Key.C) { Cockpit = !Cockpit; return; }
+        if (Paused) return;
+        switch (key)
         {
-            case Key.E: _world.ToggleDock(); break;
-            case Key.B: _world.PlayerBuy(); break;
-            case Key.V: _world.PlayerSell(); break;
+            case Key.E: Universe.ToggleDock(); break;
+            case Key.B: Universe.PlayerBuy(); break;
+            case Key.V: Universe.PlayerSell(); break;
+            case Key.T: Universe.CycleTarget(); break;
+            case Key.G: Universe.ToggleAutopilot(); break;
+            default: return;
         }
+        _beep.Play();
     }
 
-    public override void _Draw()
+    private void RunSmokeScenario()
     {
-        DrawRect(new Rect2(0, 0, 1280, 800), new Color("080f1a"));
-        // Quiet grid and a seeded star field keep the first prototype asset-free.
-        for (int x = 30; x < 960; x += 60) DrawLine(new(x, 145), new(x, 697), new Color(0.15f, 0.25f, 0.35f, 0.15f));
-        for (int y = 157; y < 700; y += 60) DrawLine(new(20, y), new(956, y), new Color(0.15f, 0.25f, 0.35f, 0.15f));
-        foreach (var star in _stars) DrawCircle(star.Point, star.Size, new Color(0.65f, 0.8f, 1, star.Alpha));
-        DrawCircle(new(195, 363), 112, new Color(0.12f, 0.26f, 0.3f, 0.12f));
-        DrawCircle(new(755, 473), 112, new Color(0.3f, 0.2f, 0.12f, 0.12f));
-        DrawDashedLine(Screen(_world.Mine.Position), Screen(_world.Refinery.Position), new Color(0.3f, 0.65f, 0.7f, 0.25f), 1, 10);
-        Text(new(28, 40), "SPACESIM", 25, _white);
-        Text(new(199, 39), "/  FIRST CARGO", 15, _cyan);
-        Text(new(29, 70), "SEKTOR 01   /   PAS KEPLERA", 13, _muted);
-        Text(new(683, 40), _paused ? "●  SYMULACJA WSTRZYMANA" : "●  SYMULACJA AKTYWNA", 13, _paused ? _amber : _cyan);
-        Text(new(683, 66), $"CZAS   {TimeSpan.FromSeconds(_world.Tick / 60):mm\\:ss}", 14, _muted);
-        DrawLine(new(25, 88), new(951, 88), new Color("253748"));
-        Text(new(29, 119), "01  KUP RUDĘ", 14, _world.Player.Ore > 0 ? _cyan : _white);
-        Text(new(254, 119), "02  PRZELEĆ DO HELIOS", 14, _white);
-        Text(new(560, 119), "03  SPRZEDAJ ŁADUNEK", 14, _white);
-        DrawStation(_world.Mine, _cyan);
-        DrawStation(_world.Refinery, _amber);
-        DrawShip(_world.Trader, _amber, false);
-        DrawShip(_world.Player, _cyan, true);
-        DrawSidebar();
-        DrawRect(new Rect2(20, 712, 936, 66), new Color("101e2b"));
-        Text(new(34, 738), _world.LastEvent, 16, _white);
-        Text(new(34, 762), "W/S  ciąg     A/D  obrót     SPACJA  hamulec     E  dok     B/V  handel     P  pauza", 14, _muted);
-    }
-
-    private void DrawStation(Station station, Color color)
-    {
-        Vector2 p = Screen(station.Position);
-        DrawArc(p, 85, 0, Mathf.Tau, 72, new Color(color, 0.18f), 1, true);
-        DrawArc(p, 37, 0, Mathf.Tau, 6, color, 2, true);
-        DrawRect(new Rect2(p - new Vector2(19, 19), new(38, 38)), new Color("142633"));
-        DrawRect(new Rect2(p - new Vector2(19, 19), new(38, 38)), color, false, 2);
-        for (int side = -1; side <= 1; side += 2)
+        try
         {
-            var rect = new Rect2(p + new Vector2(side * 51 - 10, -24), new(20, 48));
-            DrawRect(rect, new Color(color, 0.2f)); DrawRect(rect, color, false, 1);
-            DrawLine(p + new Vector2(side * 20, 0), p + new Vector2(side * 41, 0), color, 3);
+            Act(Key.G);
+            for (int i = 0; i < 18000 && Universe.Player.DockedAt != "mine"; i++) SmokeStep();
+            if (Universe.Player.DockedAt != "mine") throw new Exception("autopilot did not dock at mine");
+            Act(Key.B);
+            if (Universe.Player.Ore != 10) throw new Exception("player purchase failed");
+            Act(Key.G);
+            for (int i = 0; i < 18000 && Universe.Player.DockedAt != "refinery"; i++) SmokeStep();
+            if (Universe.Player.DockedAt != "refinery") throw new Exception("autopilot did not dock at refinery");
+            Act(Key.V);
+            if (Universe.PlayerDeliveredOre != 10 || Universe.Player.Credits <= 1000 || Universe.CollisionCount != 0) throw new Exception("trade/collision invariant failed");
+            for (int i = 0; i < 7200; i++) Universe.Step();
+            if (Universe.DeliveredOre <= 10 || Universe.Refinery.Metal == 0) throw new Exception("AI economy failed");
+            Act(Key.C); Act(Key.Tab);
+            UpdateShips(); UpdateCamera(1, true); _hud.Refresh();
+            GD.Print($"SMOKE PASS 3D: scene, autopilot trade route, player trade, AI delivered {Universe.DeliveredOre}, metal {Universe.Refinery.Metal}, no collisions");
+            FinishSmoke(0);
         }
-        DrawCircle(p, 5, color);
-        Text(p + new Vector2(-83, -104), station.Name, 16, color);
-        Text(p + new Vector2(-83, -83), station.IsMine ? "WYDOBYCIE  /  RUDA" : "PRODUKCJA  /  METALE", 11, _muted);
-        Text(p + new Vector2(-80, 111), $"Ruda {station.Ore,3} / {Station.Capacity}   •   {station.Price} kr", 14, _white);
-        if (!station.IsMine) Text(p + new Vector2(-80, 132), $"Metale {station.Metal}   |   {(station.Metal >= Station.Capacity ? "MAGAZYN PEŁNY" : station.Ore >= 2 ? "PRACA" : "BRAK RUDY")}", 12, _muted);
+        catch (Exception ex) { GD.PushError($"SMOKE FAIL 3D: {ex.Message}"); FinishSmoke(1); }
     }
 
-    private void DrawShip(Ship ship, Color color, bool player)
+    private void StopSounds()
     {
-        Vector2 p = Screen(ship.Position);
-        Vector2[] shape = [new(16, 0), new(-10, -9), new(-6, 0), new(-10, 9)];
-        var points = shape.Select(v => p + v.Rotated(ship.Heading)).ToArray();
-        DrawColoredPolygon(points, color);
-        if (ship.Velocity.Length() > 10)
+        foreach (var player in new[] { _engine, _beep })
         {
-            var rear = new Vector2(-10, 0).Rotated(ship.Heading);
-            DrawLine(p + rear, p + rear * (1.5f + ship.Velocity.Length() / 130), new Color(color, 0.6f), 3, true);
+            if (!GodotObject.IsInstanceValid(player)) continue;
+            player.Stop();
+            var stream = player.Stream;
+            player.Stream = null;
+            stream?.Dispose();
         }
-        if (player) DrawArc(p, 24, 0, Mathf.Tau, 32, new Color(color, 0.4f), 1, true);
-        Text(p + new Vector2(27, 5), player ? "TY / PIONIER" : "AI / KURIER", 11, color);
     }
 
-    private void DrawSidebar()
+    public override void _ExitTree() => StopSounds();
+
+    private async void FinishSmoke(int code)
     {
-        DrawRect(new Rect2(976, 0, 304, 800), new Color("101b28"));
-        DrawLine(new(976, 0), new(976, 800), new Color("294052"));
-        Text(new(995, 39), "TWÓJ STATEK", 13, _muted);
-        Text(new(995, 76), "PIONIER / 01", 24, _white);
-        Text(new(995, 112), $"{_world.Player.Credits:N0} kr", 28, _cyan);
-        Text(new(995, 147), $"Ruda  {_world.Player.Ore} / {Ship.Capacity}", 16, _white);
-        DrawRect(new Rect2(995, 160, 250, 5), new Color("263d4e"));
-        DrawRect(new Rect2(995, 160, 250 * _world.Player.Ore / Ship.Capacity, 5), _cyan);
-        Text(new(995, 200), $"Prędkość   {_world.Player.Velocity.Length():0} m/s", 16, _white);
-        Text(new(995, 229), _world.Player.DockedAt is null ? "Status   Swobodny lot" : "Status   Zadokowany", 15, _muted);
-        Rule(252);
-        var station = _world.DockedStation(_world.Player) ?? _world.NearestStation(_world.Player);
-        Text(new(995, 282), _world.Player.DockedAt is null ? "NAJBLIŻSZA STACJA" : "TERMINAL HANDLOWY", 12, _muted);
-        Text(new(995, 312), station.IsMine ? "KEPLER / Kopalnia" : "HELIOS / Rafineria", 19, station.IsMine ? _cyan : _amber);
-        Text(new(995, 343), $"Dystans  {NVector.Distance(_world.Player.Position, station.Position):0} m", 15, _white);
-        Text(new(995, 372), $"{(station.IsMine ? "Sprzedaż" : "Skup")} rudy:  {station.Price} kr / szt.", 15, _white);
-        Text(new(995, 402), "Dokowanie: do 85 m, poniżej 35 m/s", 12, _muted);
-        Rule(578);
-        Text(new(995, 606), "AUTOMATYCZNY TRANSPORT", 12, _amber);
-        Text(new(995, 635), $"Kurier   /   {_world.Trader.Ore} rudy   /   {_world.Trader.Credits:0} kr", 14, _white);
-        Text(new(995, 783), "PROTOTYP 0.1  /  2D • PC", 12, _muted);
+        StopSounds();
+        // Let the audio server consume its queued stop commands before destroying the scene.
+        await ToSignal(GetTree().CreateTimer(.1), SceneTreeTimer.SignalName.Timeout);
+        GetTree().Quit(code);
     }
 
-    private void Rule(float y) => DrawLine(new(995, y), new(1245, y), new Color("294052"));
-    private Vector2 Screen(NVector v) => _origin + new Vector2(v.X, v.Y);
-    private void Text(Vector2 at, string value, int size, Color color) => DrawString(Font, at, value, HorizontalAlignment.Left, -1, size, color);
+    private void SmokeStep()
+    {
+        Universe.Step();
+        if (Universe.Tick % 8 == 0)
+        {
+            UpdateShips(); UpdateCamera(World.StepSeconds * 8);
+            if (!FlightCamera.GlobalPosition.IsFinite() || !FlightCamera.GlobalBasis.IsFinite())
+                throw new Exception("non-finite flight camera transform");
+        }
+    }
+
+    private static AudioStreamWav Tone(float frequency, float seconds, bool loop)
+    {
+        const int rate = 22050;
+        int samples = (int)(rate * seconds);
+        var data = new byte[samples * 2];
+        for (int i = 0; i < samples; i++)
+        {
+            double t = (double)i / rate;
+            double envelope = loop ? .28 : Math.Sin(Math.PI * i / samples) * .35;
+            short value = (short)(Math.Sin(t * frequency * Math.Tau) * envelope * short.MaxValue);
+            data[i * 2] = (byte)value; data[i * 2 + 1] = (byte)(value >> 8);
+        }
+        return new AudioStreamWav { Format = AudioStreamWav.FormatEnum.Format16Bits, MixRate = rate, Data = data, LoopMode = loop ? AudioStreamWav.LoopModeEnum.Forward : AudioStreamWav.LoopModeEnum.Disabled, LoopBegin = 0, LoopEnd = samples };
+    }
 }

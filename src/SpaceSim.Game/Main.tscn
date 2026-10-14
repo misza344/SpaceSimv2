@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" path="res://Main.cs" id="1"]
 
-[node name="SpaceSim" type="Node2D"]
+[node name="SpaceSim" type="Node3D"]
 script = ExtResource("1")
