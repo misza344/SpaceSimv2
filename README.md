@@ -14,7 +14,17 @@
 
 Paczka zawiera Godota i .NET; nie wymaga ich instalacji ani uprawnień administratora. Gra działa offline. Wymaga Windows 10/11 x64 (Intel/AMD) i obsługi OpenGL 3.3. Nie uruchamiaj jej wewnątrz archiwum ZIP.
 
-Wersja 0.1 w `dist/` jest archiwalnym prototypem 2D; 0.2 to pierwsza wersja 3D. Aktualna wersja to **0.4 3D**.
+Wersja 0.1 w `dist/` jest archiwalnym prototypem 2D; 0.2 to pierwsza wersja 3D. Ostatnia paczka do pobrania powyżej to **0.4 3D**. Kod w tej gałęzi rozwija **0.5**, z zapisem gry. Nową paczkę generuje workflow „Verify and package SpaceSim” jako artefakt `SpaceSim-0.5-Windows`.
+
+## Zapis i wczytywanie — 0.5
+
+- **F5** zapisuje bieżący stan; **F9** wczytuje zapis i pauzuje grę. P / Esc wznawia lot.
+- Obie czynności są dostępne również przyciskami w menu pauzy, podczas autopilota i spaceru po kabinie.
+- Jeden slot zapisuje wszystkie trzy sektory, zapasy i kredyty, ładunek, produkcję, trasę i czas oczekiwania AI, trasę gracza oraz kamerę i pozycję w kabinie.
+- Zapis jest **ręczny**. F9 zastępuje niezapisany postęp; gra nie wczytuje go automatycznie przy starcie.
+- Plik jest w `user://saves/quicksave.json`; na Windows: `%APPDATA%\Godot\app_userdata\SpaceSim — Kepler Run 3D\saves\quicksave.json`.
+- Poprzedni zapis zostaje w `quicksave.json.bak`. Odzyskanie ręczne: zamknij grę, zachowaj uszkodzony plik pod inną nazwą i skopiuj `.bak` jako `quicksave.json`.
+- Niepełny plik, nieprawidłowe dane lub nieobsługiwana wersja są odrzucane przed podmianą świata. Nowy zapis jest najpierw zapisywany i opróżniany na dysk w pliku tymczasowym, potem zastępuje slot.
 
 ## Pierwszy kurs — najprościej
 
@@ -40,7 +50,7 @@ Autopilot ma rzeczywisty czas podróży; nie teleportuje statku. Możesz w każd
 
 Stan sektorów pozostaje w pamięci podczas podróży; nieaktywne sektory są
 wstrzymane. Wyjście z fotela obejmuje kabinę, bez spaceru po stacji i bez EVA.
-Instrumenty 3D są dekoracyjne; dane lotu pokazuje HUD. Nadal brak zapisu na dysku.
+Instrumenty 3D są dekoracyjne; dane lotu pokazuje HUD. W wersji 0.5 działa ręczny zapis na dysku.
 
 ## Sterowanie ręczne
 
@@ -72,7 +82,7 @@ Dokowanie ręczne: podejdź do **świecącego portu**, nie do środka stacji; od
 - Kopalnia produkuje rudę, rafineria zamienia 2 rudy na metal, a Kurier AI sam wykonuje kursy. Przyczyny oczekiwania są widoczne.
 - HUD, przyciski handlu, pauza i proste proceduralne dźwięki silników oraz poleceń.
 
-To nadal prototyp: **nie ma zapisu gry, walki, własnej floty ani budowy stacji**. Postęp przepada po zamknięciu. Rafineria ma skończony budżet i magazyn metalu; docelowy dalszy obieg produkcji pozostaje do dodania. Autopilot obsługuje trzy przygotowane sektory, a nie dowolną proceduralną galaktykę. Planeta jest tłem, bez lądowania. Statki nie zderzają się ze sobą.
+To nadal prototyp: **nie ma walki, własnej floty ani budowy stacji**. Przed zamknięciem zapisz postęp klawiszem F5. Rafineria ma skończony budżet i magazyn metalu; docelowy dalszy obieg produkcji pozostaje do dodania. Autopilot obsługuje trzy przygotowane sektory, a nie dowolną proceduralną galaktykę. Planeta jest tłem, bez lądowania. Statki nie zderzają się ze sobą.
 
 ![Kabina Pioniera — spacer](docs/cabin-0.4.png)
 
@@ -101,11 +111,13 @@ bash scripts/export-windows.sh
 
 Narzędzia trafiają do ignorowanego `.tools/`. Skrypty wymagają `curl`, `tar`, `unzip`, a eksport również Pythona 3. `source scripts/env.sh` aktywuje narzędzia dla bezpośrednich poleceń. W chmurowym sandboxie .NET może wymagać zatwierdzonego szerszego dostępu do systemowego mutexa NuGet.
 
-Eksporter weryfikuje SHA-512 oficjalnych szablonów Godota, odtwarza zablokowane zależności, dołącza runtime .NET, instrukcję i licencje. Wynik: `dist/SpaceSim-0.4-3D-win-x64-portable.zip` oraz suma SHA-256. Wydanie nie jest podpisane cyfrowo. Pliki zależności edytora i konfiguracji ExportRelease mają osobne lockfile'y.
+Eksporter weryfikuje SHA-512 oficjalnych szablonów Godota, odtwarza zablokowane zależności, dołącza runtime .NET, instrukcję i licencje. Wynik: `dist/SpaceSim-0.5-3D-win-x64-portable.zip` oraz suma SHA-256. Wydanie nie jest podpisane cyfrowo. Pliki zależności edytora i konfiguracji ExportRelease mają osobne lockfile'y.
 
 ## Weryfikacja
 
-21 testów obejmuje gospodarkę, dwie godziny symulacji, ruch pionowy, dokowanie 3D, kolizję przy dopalaczu, hamowanie i pełny kurs autopilota bez teleportacji. Test uruchomionej sceny Godota wykonuje zakup, przelot, sprzedaż, pracę AI oraz przełączenie kamer i mapy, chodzenie oraz obieg trzech sektorów. Szczegóły: [weryfikacja 0.4](docs/validation-0.4.md). Kontrole wykonujemy na Linux; eksport Windows sprawdzamy pod kątem kompletności i integralności, ale nie uruchamialiśmy EXE na Windows. Nie deklarujemy jeszcze wymagań wydajnościowych poza obsługą renderera — trzeba je zmierzyć na komputerze docelowym.
+Dotychczasowe 21 przypadków testowych obejmuje gospodarkę, dwie godziny symulacji, ruch pionowy, dokowanie 3D, kolizję przy dopalaczu, hamowanie i pełny kurs autopilota bez teleportacji. Test uruchomionej sceny Godota wykonuje zakup, przelot, sprzedaż, pracę AI oraz przełączenie kamer i mapy, chodzenie oraz obieg trzech sektorów. Szczegóły: [weryfikacja 0.4](docs/validation-0.4.md). Kontrole wykonujemy na Linux; eksport Windows sprawdzamy pod kątem kompletności i integralności, ale nie uruchamialiśmy EXE na Windows. Nie deklarujemy jeszcze wymagań wydajnościowych poza obsługą renderera — trzeba je zmierzyć na komputerze docelowym.
+
+Weryfikacja zapisu 0.5 i ograniczenia tego środowiska: [validation-0.5.md](docs/validation-0.5.md).
 
 ## Struktura
 

@@ -2,7 +2,7 @@ using System.Numerics;
 namespace SpaceSim.Core;
 
 /// <summary>Three persistent sector states; inactive sectors are suspended.</summary>
-public sealed class Galaxy
+public sealed partial class Galaxy
 {
     private readonly World[] _worlds = [new(0),new(1),new(2)];
     public static readonly string[] Names = ["PAS KEPLERA", "VESPER — BŁĘKITNA MGŁA", "CINDER — RUBIEŻ PRZEMYSŁOWA"];

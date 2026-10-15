@@ -4,7 +4,7 @@ using NVector = System.Numerics.Vector3;
 
 public partial class Main : Node3D
 {
-    public Galaxy Galaxy { get; } = new();
+    public Galaxy Galaxy { get; private set; } = new();
     public World Universe => Galaxy.Active;
     public bool Walking { get; private set; }
     public bool MouseFlight { get; private set; }
@@ -184,6 +184,8 @@ public partial class Main : Node3D
 
     public void Act(Key key)
     {
+        if (key == Key.F5) { SaveProgress(); return; }
+        if (key == Key.F9) { LoadProgress(); return; }
         if (key == Key.P || key == Key.Escape) { Paused = !Paused; _hud.Visible=true; UpdateMouseMode(); _hud.Refresh(); return; }
         if (key == Key.Tab) { MapOpen = !MapOpen; _hud.Visible=true; UpdateMouseMode(); _hud.Refresh(); return; }
         if (key == Key.H) { _hud.Visible = !_hud.Visible; return; }
@@ -205,6 +207,58 @@ public partial class Main : Node3D
             default: return;
         }
         _beep.Play();
+    }
+
+    private string SavePath => ProjectSettings.GlobalizePath(_smoke ? "user://smoke/quicksave.json" : "user://saves/quicksave.json");
+    public string SaveMessage { get; private set; } = "F5 — zapisz • F9 — wczytaj ostatni zapis";
+
+    private GameSave CaptureProgress() => new()
+    {
+        Version=SaveStorage.CurrentVersion, Galaxy=Galaxy.Capture(),
+        View=new PilotView(Walking,Cockpit,MouseFlight,
+            new NVector(_walkPosition.X,_walkPosition.Y,_walkPosition.Z),_walkYaw,_walkPitch)
+    };
+
+    private bool SaveProgress()
+    {
+        try
+        {
+            SaveStorage.Write(SavePath,CaptureProgress());
+            SaveMessage="Zapisano postęp. F9 — wczytaj.";
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or System.IO.InvalidDataException or UnauthorizedAccessException)
+        {
+            SaveMessage="Nie udało się zapisać: "+ex.Message;
+            Universe.Notify(SaveMessage); _hud.Visible=true; _hud.Refresh(); return false;
+        }
+        Universe.Notify(SaveMessage); _hud.Visible=true; _hud.Refresh(); return true;
+    }
+
+    private bool LoadProgress()
+    {
+        GameSave save;
+        Galaxy restored;
+        try
+        {
+            save=SaveStorage.Read(SavePath);
+            restored=Galaxy.Restore(save.Galaxy);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or System.IO.InvalidDataException or UnauthorizedAccessException)
+        {
+            SaveMessage=ex is System.IO.FileNotFoundException or System.IO.DirectoryNotFoundException
+                ? "Brak zapisu. F5 — zapisz bieżącą grę."
+                : "Nie udało się wczytać: "+ex.Message;
+            Universe.Notify(SaveMessage); _hud.Visible=true; _hud.Refresh(); return false;
+        }
+        Galaxy=restored;
+        Walking=save.View.Walking; Cockpit=save.View.Cockpit; MouseFlight=save.View.MouseFlight;
+        _walkPosition=Cabin.Clamp(SpaceGeometry.Convert(save.View.Position));
+        _walkYaw=save.View.Yaw; _walkPitch=save.View.Pitch;
+        // Loading always pauses, so held input cannot move the restored ship unexpectedly.
+        Paused=true; MapOpen=false; _hud.Visible=true;
+        BuildSector(); UpdateShips(); UpdateCamera(1,true); UpdateMouseMode();
+        SaveMessage="Wczytano postęp. P / ESC — kontynuuj.";
+        Universe.Notify(SaveMessage); _hud.Refresh(); return true;
     }
 
     private void UpdateMouseMode()
@@ -270,9 +324,34 @@ public partial class Main : Node3D
                 int before=Galaxy.Sector; Act(Key.J);
                 if(Galaxy.Sector==(before)) throw new Exception("sector travel failed");
             }
+            // Exercise the real disk/UI path in flight and in the cabin, using an isolated save.
+            Act(Key.G);
+            for(int i=0;i<120;i++) SmokeStep();
+            var flightPosition=Universe.Player.Position;
+            long flightTick=Universe.Tick;
+            if(!SaveProgress()) throw new Exception("flight save failed");
+            for(int i=0;i<120;i++) SmokeStep();
+            if(!LoadProgress() || !Paused || !Universe.Autopilot || Universe.Tick!=flightTick || Universe.Player.Position!=flightPosition)
+                throw new Exception("flight restore failed");
+            Act(Key.P);
+            for(int i=0;i<18000 && Universe.Autopilot;i++) SmokeStep();
+            Act(Key.F);
+            if(!Walking) throw new Exception("cabin save setup failed");
+            _walkPosition=new(0,.65f,1); _walkYaw=.4f;
+            if(!SaveProgress()) throw new Exception("cabin save failed");
+            _walkPosition=new(0,.65f,-1.3f); Act(Key.F);
+            if(!LoadProgress() || !Walking || _walkPosition.Z!=1 || _walkYaw!=.4f)
+                throw new Exception("cabin restore failed");
+            var beforeFailure=Galaxy;
+            System.IO.File.WriteAllText(SavePath,"{broken");
+            if(LoadProgress() || !ReferenceEquals(beforeFailure,Galaxy)) throw new Exception("invalid save changed galaxy");
+            System.IO.File.Delete(SavePath);
+            System.IO.File.Delete(SavePath+".bak");
+            Act(Key.P);
+            _walkPosition=new(0,.65f,-1.3f); Act(Key.F);
             Act(Key.C); Act(Key.Tab);
             UpdateShips(); UpdateCamera(1, true); _hud.Refresh();
-            GD.Print($"SMOKE PASS 3D: cabin walk/seat, three sector jumps, autopilot trade route, player trade, AI delivered {Universe.DeliveredOre}, metal {Universe.Refinery.Metal}, no collisions");
+            GD.Print($"SMOKE PASS 3D: disk save/load in flight and cabin, corrupt save rejected, cabin walk/seat, three sector jumps, autopilot trade route, player trade, AI delivered {Universe.DeliveredOre}, metal {Universe.Refinery.Metal}, no collisions");
             FinishSmoke(0);
         }
         catch (Exception ex) { GD.PushError($"SMOKE FAIL 3D: {ex.Message}"); FinishSmoke(1); }
