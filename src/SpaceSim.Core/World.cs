@@ -40,7 +40,7 @@ public readonly record struct CollisionBody(Vector3 Position, float Radius, bool
 public readonly record struct TradeResult(bool Success, string Message, int Quantity = 0);
 
 /// <summary>Authoritative world. No Godot types, rendering or wall-clock dependencies.</summary>
-public sealed class World
+public sealed partial class World
 {
     public const float StepSeconds = 1f / 60f;
     public Station Mine { get; } = new("mine", "KEPLER / Kopalnia", new(-240, 0, -280), true, 90, 5000);

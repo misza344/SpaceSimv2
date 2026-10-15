@@ -7,7 +7,7 @@ public partial class FlightHud : Control
     public Main Game { get; init; } = null!;
     private readonly Color _cyan = new("69e8e0"), _amber = new("ffbf78"), _white = new("edf4f8"), _muted = new("91aabd");
     private readonly Color _panel = new(.025f, .052f, .078f, .88f);
-    private Button _nav = null!, _dock = null!, _buy = null!, _sell = null!, _target = null!, _resume = null!;
+    private Button _nav = null!, _dock = null!, _buy = null!, _sell = null!, _target = null!, _resume = null!, _save = null!, _load = null!;
     private Label _status = null!, _trader = null!;
     private readonly List<Button> _buttons = [];
     private World W => Game.Universe;
@@ -26,6 +26,8 @@ public partial class FlightHud : Control
         _buy = Button("B  Kup 10 rudy", Key.B);
         _sell = Button("V  Sprzedaj 10 rudy", Key.V);
         _resume = Button("Wróć do lotu", Key.P);
+        _save = Button("F5  Zapisz grę", Key.F5);
+        _load = Button("F9  Wczytaj grę", Key.F9);
         _status = Label(16, _white);
         _trader = Label(13, _muted);
         Refresh();
@@ -66,9 +68,17 @@ public partial class FlightHud : Control
         _dock.Disabled = W.Player.DockedAt is null && (NV.Distance(W.Player.Position, W.NearestStation(W.Player).DockPosition) > World.DockRange || W.Player.Velocity.Length() > World.DockSpeed);
         _status.Position = new(38, Height - 111); _status.Size = new(Width - 76, 45);
         _status.Text = W.LastEvent; _status.Visible = !Game.MapOpen && !Game.Paused && !Game.Walking;
+        if (Game.Paused)
+        {
+            // Wrapped label keeps file errors readable inside the pause panel.
+            _status.Position=new(Width/2-235,Height/2+176); _status.Size=new(470,48);
+            _status.Text=Game.SaveMessage; _status.Visible=true;
+        }
         _trader.Position = new(42, 434); _trader.Size = new(216, 70); _trader.Text = W.Trader.Status;
         _trader.Visible = !Game.MapOpen && !Game.Paused && !Game.Walking;
         _resume.Position = new(Width / 2 - 135, Height / 2 + 46); _resume.Size = new(270, 42); _resume.Visible = Game.Paused;
+        _save.Position=new(Width/2-230,Height/2+102); _save.Size=new(220,40); _save.Visible=Game.Paused;
+        _load.Position=new(Width/2+10,Height/2+102); _load.Size=new(220,40); _load.Visible=Game.Paused;
         QueueRedraw();
     }
 
@@ -79,7 +89,7 @@ public partial class FlightHud : Control
         // Thin cockpit framing keeps the flight view open.
         DrawRect(new Rect2(0, 0, Width, 82), new Color(.018f,.035f,.055f,.94f));
         Text(new(29, 36), "SPACE", 25, _white); Text(new(114, 36), "SIM", 25, _cyan);
-        Text(new(29, 61), "KEPLER RUN   /   PROTOTYP 0.4", 11, _muted);
+        Text(new(29, 61), "KEPLER RUN   /   PROTOTYP 0.5", 11, _muted);
         Line(new(229, 21), new(229, 61), new Color("334854"));
         Text(new(251, 36), Game.Galaxy.Name, 15, _white);
         Text(new(251, 59), $"SEKTOR {Game.Galaxy.Sector+1:00} / 03   •   RUCH HANDLOWY AKTYWNY", 11, _muted);
@@ -116,7 +126,7 @@ public partial class FlightHud : Control
         }
         Panel(new(24, Height - 126, Width - 48, 108));
         Text(new(39, Height - 53), "W/S ciąg   A/D w bok   Q/Z góra/dół   M mysz / PPM / strzałki   SHIFT dopalacz   SPACJA hamulec   F wstań", 12, _muted);
-        Text(new(39, Height - 31), "G autopilot   T cel   E dok   B/V handel   C kamera   H HUD   TAB mapa   K brama   J skok   ESC pauza", 12, _cyan);
+        Text(new(39, Height - 31), "G autopilot   T cel   E dok   B/V handel   C kamera   H HUD   TAB mapa   K brama   J skok   F5 zapis   F9 odczyt   ESC pauza", 12, _cyan);
         Center(new(cx, 110), "C / " + (Game.Cockpit ? "KOKPIT" : "KAMERA POŚCIGOWA") + (Game.MouseFlight?"  •  M / MYSZ AKTYWNA":"  •  M / WŁĄCZ MYSZ"), 11, _muted);
     }
 
@@ -264,10 +274,12 @@ public partial class FlightHud : Control
     private void PausePanel()
     {
         DrawRect(new Rect2(0, 82, Width, Height - 82), new Color(.008f,.02f,.035f,.8f));
-        Panel(new(Width / 2 - 255, Height / 2 - 120, 510, 255));
+        Panel(new(Width / 2 - 255, Height / 2 - 120, 510, 360));
         Center(new(Width / 2, Height / 2 - 63), "LOT WSTRZYMANY", 28, _white);
         Center(new(Width / 2, Height / 2 - 18), "Symulacja i handel są zatrzymane.", 16, _muted);
         Center(new(Width / 2, Height / 2 + 12), "P / ESC — wróć do gry", 14, _cyan);
+        Center(new(Width / 2, Height / 2 + 167), "Wczytanie zastępuje niezapisany postęp.", 12, _muted);
+
     }
     private void Panel(Rect2 rect) { DrawRect(rect, _panel); DrawRect(rect, new Color(.22f,.38f,.44f,.65f), false, 1); DrawLine(rect.Position, rect.Position + new Vector2(25, 0), _cyan, 2); }
     private void Text(Vector2 p, string s, int size, Color c) => DrawString(Font, p, s, HorizontalAlignment.Left, -1, size, c);

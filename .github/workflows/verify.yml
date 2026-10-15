@@ -1,0 +1,26 @@
+name: Verify and package SpaceSim
+on:
+  push:
+    branches: [main, 'codex/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools and build
+        run: bash scripts/setup.sh
+      - name: Unit and Godot scene tests
+        run: bash scripts/check.sh
+      - name: Export Windows portable
+        run: bash scripts/export-windows.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SpaceSim-0.5-Windows
+          path: |
+            dist/SpaceSim-0.5-3D-win-x64-portable.zip
+            dist/SpaceSim-0.5-3D-win-x64-portable.zip.sha256
+          if-no-files-found: error
