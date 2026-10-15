@@ -1,10 +1,10 @@
-SPACESIM — KEPLER RUN 3D / 0.3
+SPACESIM — KEPLER RUN 3D / 0.4
 Portable dla Windows 10/11 x64 (Intel/AMD), OpenGL 3.3
 
 URUCHOMIENIE BEZ INSTALACJI
 
 1. Kliknij ZIP prawym przyciskiem → „Wyodrębnij wszystkie”.
-2. Otwórz folder SpaceSim-0.3-3D-win-x64-portable.
+2. Otwórz folder SpaceSim-0.4-3D-win-x64-portable.
 3. Uruchom SpaceSim.exe.
 
 Nie uruchamiaj gry wewnątrz ZIP-a. Zachowaj obok EXE plik SpaceSim.pck
@@ -19,6 +19,18 @@ B — kup 10 rudy; cel zmieni się na rafinerię Helios.
 G — odleć do Helios i zadokuj. Lot trwa kilkadziesiąt sekund.
 V — sprzedaj rudę i obserwuj produkcję metalu.
 TAB — mapa; kliknij stację, aby wybrać cel. C — zmień kamerę.
+
+NOWOŚCI 0.4 — SEKTORY I KABINA
+
+K — autopilot do bramy; po dotarciu J — skok do kolejnego sektora.
+Trasa: Kepler → Vesper → Cinder → Kepler. Ładunek i kredyty podróżują z Tobą.
+Stan odwiedzonych stacji pozostaje w pamięci. Nieaktywne sektory są wstrzymane.
+M — sterowanie myszą bez przytrzymywania PPM. X — wspomaganie lotu.
+F — wstań po zatrzymaniu statku spacją i wyłączeniu autopilota.
+WASD + mysz — spacer po kabinie; Shift — szybszy krok.
+Podejdź do fotela z przodu i naciśnij F, żeby wrócić do pilotowania.
+Esc — pauza i uwolnienie kursora. Nie można wychodzić ze statku w próżnię.
+Utrata aktywności okna automatycznie pauzuje grę.
 
 STEROWANIE RĘCZNE
 
@@ -35,7 +47,7 @@ Sterowanie ręczne przerywa autopilota. Na mapie symulacja działa dalej.
 TO JEST PROTOTYP
 
 Nie ma jeszcze zapisu — po zamknięciu postęp przepada. Brak walki,
-wielu sektorów i budowy floty. Planeta jest tłem, bez lądowania.
+budowy floty. Planeta jest tłem, bez lądowania.
 Rafineria może wypełnić magazyn metalu i zatrzymać handel.
 Kolizje dotyczą gracza i stacji/asteroid; nie zadają obrażeń.
 

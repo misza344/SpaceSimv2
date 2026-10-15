@@ -6,7 +6,7 @@
 
 ## Pobierz i graj — bez instalacji
 
-**[Pobierz SpaceSim 0.3 3D portable — Windows 64-bit](https://github.com/misza344/SpaceSimv2/raw/refs/heads/main/dist/SpaceSim-0.3-3D-win-x64-portable.zip)**
+**[Pobierz SpaceSim 0.4 3D portable — Windows 64-bit](https://github.com/misza344/SpaceSimv2/raw/refs/heads/main/dist/SpaceSim-0.4-3D-win-x64-portable.zip)**
 
 1. Pobierz ZIP. Kliknij prawym przyciskiem → **Wyodrębnij wszystkie**.
 2. Otwórz wypakowany folder i uruchom **SpaceSim.exe**.
@@ -14,7 +14,7 @@
 
 Paczka zawiera Godota i .NET; nie wymaga ich instalacji ani uprawnień administratora. Gra działa offline. Wymaga Windows 10/11 x64 (Intel/AMD) i obsługi OpenGL 3.3. Nie uruchamiaj jej wewnątrz archiwum ZIP.
 
-Wersja 0.1 w `dist/` jest archiwalnym prototypem 2D; 0.2 to pierwsza wersja 3D. Aktualna wersja to **0.3 3D**.
+Wersja 0.1 w `dist/` jest archiwalnym prototypem 2D; 0.2 to pierwsza wersja 3D. Aktualna wersja to **0.4 3D**.
 
 ## Pierwszy kurs — najprościej
 
@@ -25,6 +25,22 @@ Wersja 0.1 w `dist/` jest archiwalnym prototypem 2D; 0.2 to pierwsza wersja 3D. 
 - **TAB** otwiera mapę. Kliknięcie stacji wybiera cel. **C** zmienia kamerę.
 
 Autopilot ma rzeczywisty czas podróży; nie teleportuje statku. Możesz w każdej chwili przejąć sterowanie klawiaturą lub przerwać go klawiszem G. Symulacja działa dalej podczas oglądania mapy.
+
+## Eksploracja i kabina — 0.4
+
+- **K**: autopilot do bramy. Po zatrzymaniu przy niej **J** przenosi do następnego sektora.
+- Trasa: **Kepler → Vesper → Cinder → Kepler**. Każdy sektor ma dwie stacje,
+  własne zapasy, trasy NPC, inne położenia obiektów i kolorystykę otoczenia.
+- **F**: wstań z fotela po zatrzymaniu statku (spacja); autopilot musi być wyłączony.
+  W kabinie WASD porusza pilotem, mysz obraca widok. Podejdź do fotela z przodu
+  i naciśnij F, żeby znów sterować statkiem. Nie można przechodzić przez ściany.
+- **M** przełącza sterowanie myszą bez trzymania PPM; **X** przełącza wspomaganie.
+  Domyślnie puszczenie ciągu wyhamowuje statek; bez wspomagania zachowuje dryf.
+- **Esc** uwalnia kursor i pauzuje. Utrata aktywności okna również pauzuje grę.
+
+Stan sektorów pozostaje w pamięci podczas podróży; nieaktywne sektory są
+wstrzymane. Wyjście z fotela obejmuje kabinę, bez spaceru po stacji i bez EVA.
+Instrumenty 3D są dekoracyjne; dane lotu pokazuje HUD. Nadal brak zapisu na dysku.
 
 ## Sterowanie ręczne
 
@@ -44,7 +60,7 @@ Autopilot ma rzeczywisty czas podróży; nie teleportuje statku. Możesz w każd
 | Tab | Mapa sektora |
 | P / Esc | Pauza / kontynuacja |
 
-Dokowanie ręczne: podejdź do **świecącego portu**, nie do środka stacji; odległość do 75 m i prędkość poniżej 25 m/s. HUD pokazuje odległość do portu. Statek ma bezwładność i wspomagane hamowanie. Kamera pokładowa jest prostym widokiem z nosa statku, bez wymodelowanego wnętrza.
+Dokowanie ręczne: podejdź do **świecącego portu**, nie do środka stacji; odległość do 75 m i prędkość poniżej 25 m/s. HUD pokazuje odległość do portu. Statek ma bezwładność i wspomagane hamowanie. F pozwala wstać po zatrzymaniu statku i chodzić po wymodelowanej kabinie.
 
 ## Co działa
 
@@ -56,7 +72,9 @@ Dokowanie ręczne: podejdź do **świecącego portu**, nie do środka stacji; od
 - Kopalnia produkuje rudę, rafineria zamienia 2 rudy na metal, a Kurier AI sam wykonuje kursy. Przyczyny oczekiwania są widoczne.
 - HUD, przyciski handlu, pauza i proste proceduralne dźwięki silników oraz poleceń.
 
-To nadal prototyp: **nie ma zapisu gry, walki, wielu sektorów, własnej floty ani budowy stacji**. Postęp przepada po zamknięciu. Rafineria ma skończony budżet i magazyn metalu; docelowy dalszy obieg produkcji pozostaje do dodania. Autopilot obsługuje ten konkretny sektor, a nie dowolną proceduralną galaktykę. Planeta jest tłem, bez lądowania. Statki nie zderzają się ze sobą.
+To nadal prototyp: **nie ma zapisu gry, walki, własnej floty ani budowy stacji**. Postęp przepada po zamknięciu. Rafineria ma skończony budżet i magazyn metalu; docelowy dalszy obieg produkcji pozostaje do dodania. Autopilot obsługuje trzy przygotowane sektory, a nie dowolną proceduralną galaktykę. Planeta jest tłem, bez lądowania. Statki nie zderzają się ze sobą.
+
+![Kabina Pioniera — spacer](docs/cabin-0.4.png)
 
 ## Praca nad kodem
 
@@ -83,11 +101,11 @@ bash scripts/export-windows.sh
 
 Narzędzia trafiają do ignorowanego `.tools/`. Skrypty wymagają `curl`, `tar`, `unzip`, a eksport również Pythona 3. `source scripts/env.sh` aktywuje narzędzia dla bezpośrednich poleceń. W chmurowym sandboxie .NET może wymagać zatwierdzonego szerszego dostępu do systemowego mutexa NuGet.
 
-Eksporter weryfikuje SHA-512 oficjalnych szablonów Godota, odtwarza zablokowane zależności, dołącza runtime .NET, instrukcję i licencje. Wynik: `dist/SpaceSim-0.3-3D-win-x64-portable.zip` oraz suma SHA-256. Wydanie nie jest podpisane cyfrowo. Pliki zależności edytora i konfiguracji ExportRelease mają osobne lockfile'y.
+Eksporter weryfikuje SHA-512 oficjalnych szablonów Godota, odtwarza zablokowane zależności, dołącza runtime .NET, instrukcję i licencje. Wynik: `dist/SpaceSim-0.4-3D-win-x64-portable.zip` oraz suma SHA-256. Wydanie nie jest podpisane cyfrowo. Pliki zależności edytora i konfiguracji ExportRelease mają osobne lockfile'y.
 
 ## Weryfikacja
 
-14 testów obejmuje gospodarkę, dwie godziny symulacji, ruch pionowy, dokowanie 3D, kolizję przy dopalaczu, hamowanie i pełny kurs autopilota bez teleportacji. Test uruchomionej sceny Godota wykonuje zakup, przelot, sprzedaż, pracę AI oraz przełączenie kamer i mapy. Kontrole wykonujemy na Linux; eksport Windows sprawdzamy pod kątem kompletności i integralności, ale nie uruchamialiśmy EXE na Windows. Nie deklarujemy jeszcze wymagań wydajnościowych poza obsługą renderera — trzeba je zmierzyć na komputerze docelowym.
+21 testów obejmuje gospodarkę, dwie godziny symulacji, ruch pionowy, dokowanie 3D, kolizję przy dopalaczu, hamowanie i pełny kurs autopilota bez teleportacji. Test uruchomionej sceny Godota wykonuje zakup, przelot, sprzedaż, pracę AI oraz przełączenie kamer i mapy, chodzenie oraz obieg trzech sektorów. Szczegóły: [weryfikacja 0.4](docs/validation-0.4.md). Kontrole wykonujemy na Linux; eksport Windows sprawdzamy pod kątem kompletności i integralności, ale nie uruchamialiśmy EXE na Windows. Nie deklarujemy jeszcze wymagań wydajnościowych poza obsługą renderera — trzeba je zmierzyć na komputerze docelowym.
 
 ## Struktura
 

@@ -210,7 +210,7 @@ public static class SpaceGeometry
             Box(root,new(2,1,1),new(side*10,14,32),light);
         }
         Hull(root,new(41,8,7),new(0,17,29),pale,1);
-        Sign(root,station.IsMine?"KEPLER  /  ORE EXTRACTION":"HELIOS  /  METAL FOUNDRY",new(0,18,32.6f),.018f,new Color("15242c"));
+        Sign(root,station.Name.Split('/')[0].Trim() + (station.IsMine?" / ORE EXTRACTION":" / METAL FOUNDRY"),new(0,18,32.6f),.018f,new Color("15242c"));
         Sign(root,"01",new(0,7,24),.11f,new Color("81dce3"));
         // Four corner guides replace the oversized solid-looking neon ring.
         foreach(int side in new[]{-1,1}) foreach(int y in new[]{-1,1})

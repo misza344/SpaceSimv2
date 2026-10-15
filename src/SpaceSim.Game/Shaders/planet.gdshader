@@ -1,4 +1,5 @@
 shader_type spatial;
+uniform vec4 sector_tint : source_color = vec4(1.0);
 varying vec3 local_direction;
 float hash3(vec3 p) { p=fract(p*.3183099+vec3(.1,.2,.3)); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
 float noise3(vec3 p) {
@@ -16,5 +17,6 @@ void fragment() {
  float clouds=smoothstep(.50,.67,fbm(p*12.0+vec3(2.0,7.0,4.0)));
  float polar=smoothstep(.83,.98,abs(p.y)+noise3(p*28.0)*.035);
  ALBEDO=mix(mix(mix(ocean,continent,land),vec3(.55,.64,.7),polar),vec3(.52,.60,.67),clouds*.72);
+ ALBEDO*=sector_tint.rgb;
  ROUGHNESS=mix(.4,.95,land);
 }

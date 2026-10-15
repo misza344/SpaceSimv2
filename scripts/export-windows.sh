@@ -27,7 +27,7 @@ dotnet restore SpaceSim.sln --locked-mode
 dotnet restore src/SpaceSim.Game/SpaceSim.Game.csproj -p:Configuration=ExportRelease --locked-mode
 stage="$(mktemp -d "$SPACESIM_REPO/dist/.portable-build.XXXXXX")"
 trap 'rm -rf -- "$stage"' EXIT
-package="$stage/SpaceSim-0.3-3D-win-x64-portable"
+package="$stage/SpaceSim-0.4-3D-win-x64-portable"
 mkdir -p "$package/licenses"
 "$GODOT" --headless --path src/SpaceSim.Game --export-release 'Windows Portable' "$package/SpaceSim.exe" 2>&1 | tee "$stage/export.log"
 # Some Godot export-plugin failures return exit code zero; reject those explicitly.

@@ -1,5 +1,6 @@
 shader_type sky;
 render_mode use_debanding;
+uniform vec4 sector_tint : source_color = vec4(1.0);
 float hash(vec3 p) { p = fract(p * 0.3183099 + vec3(.1,.2,.3)); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
 float noise(vec3 p) {
  vec3 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
@@ -10,7 +11,7 @@ void sky() {
  float n=noise(d*5.0)*.5+noise(d*11.0)*.27+noise(d*23.0)*.13;
  float band=pow(max(0.0,1.0-abs(d.y*.9+d.x*.32+.15)),7.0);
  vec3 nebula=mix(vec3(.028,.055,.09),vec3(.15,.057,.125),noise(d*3.0+9.0));
- COLOR=vec3(.006,.01,.024)+nebula*pow(n,2.0)*band*6.0;
+ COLOR=vec3(.006,.01,.024)+nebula*sector_tint.rgb*pow(n,2.0)*band*6.0;
  vec2 grid=SKY_COORDS*vec2(1500.0,750.0);
  vec2 cell=floor(grid); vec2 f=fract(grid)-.5;
  float seed=hash(vec3(cell,1.0));

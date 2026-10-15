@@ -4,7 +4,16 @@ using NVector = System.Numerics.Vector3;
 
 public partial class Main : Node3D
 {
-    public World Universe { get; } = new();
+    public Galaxy Galaxy { get; } = new();
+    public World Universe => Galaxy.Active;
+    public bool Walking { get; private set; }
+    public bool MouseFlight { get; private set; }
+    public bool NearSeat => _walkPosition.DistanceTo(Cabin.Seat)<=1.6f;
+    public float GateDistance => NVector.Distance(Universe.Player.Position,World.GatePosition);
+    private Node3D _sectorVisual = null!, _cabin = null!;
+    private Vector3 _walkPosition = new(0,.65f,-.6f);
+    private float _walkYaw, _walkPitch;
+    private Vector2 _steering;
     public Camera3D FlightCamera { get; private set; } = null!;
     public bool Paused { get; private set; }
     public bool Cockpit { get; private set; }
@@ -21,16 +30,14 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
-        BuildEnvironment();
-        _mine = SpaceGeometry.Station(this, Universe.Mine);
-        _refinery = SpaceGeometry.Station(this, Universe.Refinery);
-        SpaceGeometry.Asteroids(this, Universe);
+        BuildSector();
         _player = SpaceGeometry.Ship(this, false);
         _trader = SpaceGeometry.Ship(this, true);
         _trader.Scale = Vector3.One * 1.5f;
         FlightCamera = new Camera3D { Fov = 68, Near = .15f, Far = 16000, Current = true };
         AddChild(FlightCamera);
         _cockpitFrame=SpaceGeometry.CockpitFrame(FlightCamera);
+        _cabin=Cabin.Build(this);
         UpdateShips();
         UpdateCamera(1, true);
         var canvas = new CanvasLayer(); AddChild(canvas);
@@ -41,6 +48,25 @@ public partial class Main : Node3D
         _smoke = OS.GetCmdlineUserArgs().Contains("--smoke-test");
         if (OS.GetCmdlineUserArgs().Contains("--export-models")) ExportModels();
         if (OS.GetCmdlineUserArgs().Contains("--art-review")) { _artReview=true; CaptureModels(); }
+    }
+
+    private void BuildSector()
+    {
+        if (_sectorVisual is not null) { RemoveChild(_sectorVisual); _sectorVisual.QueueFree(); }
+        _sectorVisual=new Node3D {Name="Sector"};AddChild(_sectorVisual);
+        BuildEnvironment();
+        _mine=SpaceGeometry.Station(_sectorVisual,Universe.Mine);
+        _refinery=SpaceGeometry.Station(_sectorVisual,Universe.Refinery);
+        SpaceGeometry.Asteroids(_sectorVisual,Universe);
+        var gate=new Node3D {Position=SpaceGeometry.Convert(World.GatePosition)};_sectorVisual.AddChild(gate);
+        SpaceGeometry.Ring(gate,44,4,Vector3.Zero,SpaceGeometry.Material("71838d",.6f,.4f),new(90,0,0));
+        SpaceGeometry.Ring(gate,39,.7f,Vector3.Zero,SpaceGeometry.Material("69dfea",0,.4f,1),new(90,0,0));
+        for(int i=0;i<8;i++)
+        {
+            float a=i*Mathf.Tau/8;
+            SpaceGeometry.Box(gate,new(8,8,13),new(Mathf.Cos(a)*44,Mathf.Sin(a)*44,0),SpaceGeometry.Material("344554",.5f,.5f));
+        }
+        gate.AddChild(new Label3D {Text=$"BRAMA / {Galaxy.Names[Galaxy.NextSector]}\nJ — skok   /   K — podejście",Position=new(0,57,0),PixelSize=.08f,FontSize=32,Billboard=BaseMaterial3D.BillboardModeEnum.Enabled});
     }
 
     private void BuildEnvironment()
@@ -55,13 +81,15 @@ public partial class Main : Node3D
             TonemapMode = Godot.Environment.ToneMapper.Aces,
             TonemapExposure = .9f
         };
-        AddChild(new WorldEnvironment { Environment = env });
-        AddChild(new DirectionalLight3D { RotationDegrees = new(-32, -35, 0), LightColor = new Color("ffe4bd"), LightEnergy = 1.15f, ShadowEnabled = true, DirectionalShadowMaxDistance = 650 });
-        AddChild(new DirectionalLight3D { RotationDegrees = new(25, 145, 0), LightColor = new Color("577ab7"), LightEnergy = .6f });
-        var planet = SpaceGeometry.Sphere(this, 1050, new(1300, -640, -4100), new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/planet.gdshader") }, 96);
-        planet.RotationDegrees = new(0, 25, 22);
-        SpaceGeometry.Sphere(this, 1090, planet.Position, new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/atmosphere.gdshader") }, 96);
-        var distantMoon = SpaceGeometry.Sphere(this, 190, new(-1500, 850, -5000), SpaceGeometry.Material("85838b", .1f, .9f), 40);
+        ((ShaderMaterial)env.Sky.SkyMaterial).SetShaderParameter("sector_tint", new Color(Galaxy.Sector==1?"508cae":Galaxy.Sector==2?"d28d56":"a88cc9"));
+        _sectorVisual.AddChild(new WorldEnvironment { Environment = env });
+        _sectorVisual.AddChild(new DirectionalLight3D { RotationDegrees = new(-32, -35, 0), LightColor = new Color("ffe4bd"), LightEnergy = 1.15f, ShadowEnabled = true, DirectionalShadowMaxDistance = 650 });
+        _sectorVisual.AddChild(new DirectionalLight3D { RotationDegrees = new(25, 145, 0), LightColor = new Color("577ab7"), LightEnergy = .6f });
+        var planet = SpaceGeometry.Sphere(_sectorVisual, 1050, new(1300-Galaxy.Sector*1700, -640+Galaxy.Sector*350, -4100), new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/planet.gdshader") }, 96);
+        planet.RotationDegrees = new(0, 25+Galaxy.Sector*53, 22);
+        ((ShaderMaterial)planet.MaterialOverride).SetShaderParameter("sector_tint", new Color(Galaxy.Sector==1?"8cbce0":Galaxy.Sector==2?"dfab79":"ffffff"));
+        SpaceGeometry.Sphere(_sectorVisual, 1090, planet.Position, new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/atmosphere.gdshader") }, 96);
+        var distantMoon = SpaceGeometry.Sphere(_sectorVisual, 190, new(-1500, 850, -5000), SpaceGeometry.Material("85838b", .1f, .9f), 40);
         distantMoon.RotationDegrees = new(0, 60, 0);
     }
 
@@ -72,7 +100,9 @@ public partial class Main : Node3D
         {
             float yaw = Axis(Key.Right, Key.Left) + _mouseDelta.X * .032f;
             float pitch = Axis(Key.Up, Key.Down) - _mouseDelta.Y * .032f;
-            var input = MapOpen ? default : new PilotInput(yaw, Axis(Key.W, Key.S), Input.IsPhysicalKeyPressed(Key.Space), pitch, Axis(Key.D, Key.A), Axis(Key.Q, Key.Z), Input.IsPhysicalKeyPressed(Key.Shift));
+            _steering=_steering.Lerp(new(yaw,pitch),.22f);
+            var input = MapOpen || Walking ? default : new PilotInput(_steering.X, Axis(Key.W, Key.S), Input.IsPhysicalKeyPressed(Key.Space), _steering.Y, Axis(Key.D, Key.A), Axis(Key.Q, Key.Z), Input.IsPhysicalKeyPressed(Key.Shift));
+            if (Walking && !MapOpen) MoveOnFoot((float)delta);
             Universe.Step(input);
         }
         _mouseDelta = Vector2.Zero;
@@ -92,8 +122,10 @@ public partial class Main : Node3D
         SyncShip(_trader, Universe.Trader);
         _mine.GetNode<Node3D>("HabitatRing").Rotation = new(0, 0, Universe.Tick / 60f * .035f);
         _refinery.GetNode<Node3D>("HabitatRing").Rotation = new(0, 0, -Universe.Tick / 60f * .022f);
-        _player.Visible = !Cockpit;
-        _cockpitFrame.Visible = Cockpit;
+        _player.Visible = !Cockpit && !Walking;
+        _cockpitFrame.Visible = Cockpit && !Walking;
+        _cabin.Visible = Walking;
+        _cabin.Transform=_player.Transform;
     }
 
     private static void SyncShip(Node3D model, Ship ship)
@@ -112,6 +144,12 @@ public partial class Main : Node3D
 
     private void UpdateCamera(float delta, bool instant = false)
     {
+        if (Walking)
+        {
+            FlightCamera.Transform=_cabin.Transform * new Transform3D(Basis.FromEuler(new(_walkPitch,_walkYaw,0)),_walkPosition);
+            FlightCamera.Fov=75;
+            return;
+        }
         var pos = SpaceGeometry.Convert(Universe.Player.Position);
         var forward = SpaceGeometry.Convert(Universe.Player.Forward);
         var right = SpaceGeometry.Convert(Universe.Player.Right);
@@ -125,31 +163,76 @@ public partial class Main : Node3D
         FlightCamera.Fov = Mathf.Lerp(FlightCamera.Fov, Universe.Player.Velocity.Length() > World.CruiseSpeed ? 79 : 68, .035f);
     }
 
+    public override void _Notification(int what)
+    {
+        if (what == NotificationApplicationFocusOut && _hud is not null && !_smoke && !_artReview)
+        {
+            Paused=true;_hud.Visible=true;UpdateMouseMode();_hud.Refresh();
+        }
+    }
+
     public override void _UnhandledInput(InputEvent input)
     {
-        if (input is InputEventMouseMotion motion && Input.IsMouseButtonPressed(MouseButton.Right) && !Paused && !MapOpen)
-            _mouseDelta += motion.Relative;
+        if (input is InputEventMouseMotion motion && !Paused && !MapOpen)
+        {
+            if (Walking) { _walkYaw-=motion.Relative.X*.0025f; _walkPitch=Mathf.Clamp(_walkPitch-motion.Relative.Y*.0025f,-1.25f,1.25f); }
+            else if (MouseFlight || Input.IsMouseButtonPressed(MouseButton.Right)) _mouseDelta += motion.Relative;
+        }
         if (input is not InputEventKey { Pressed: true, Echo: false } key) return;
         Act(key.PhysicalKeycode);
     }
 
     public void Act(Key key)
     {
-        if (key == Key.P || key == Key.Escape) { Paused = !Paused; _hud.Refresh(); return; }
-        if (key == Key.Tab) { MapOpen = !MapOpen; _hud.Refresh(); return; }
+        if (key == Key.P || key == Key.Escape) { Paused = !Paused; _hud.Visible=true; UpdateMouseMode(); _hud.Refresh(); return; }
+        if (key == Key.Tab) { MapOpen = !MapOpen; _hud.Visible=true; UpdateMouseMode(); _hud.Refresh(); return; }
         if (key == Key.H) { _hud.Visible = !_hud.Visible; return; }
-        if (key == Key.C) { Cockpit = !Cockpit; return; }
         if (Paused) return;
+        if (key == Key.F) { ToggleWalking(); return; }
+        if (Walking) return;
+        if (key == Key.M) { MouseFlight=!MouseFlight; UpdateMouseMode(); return; }
+        if (key == Key.C) { Cockpit = !Cockpit; return; }
         switch (key)
         {
+            case Key.X: Universe.ToggleFlightAssist(); break;
+            case Key.K: _steering=Vector2.Zero; Universe.NavigateToGate(); break;
+            case Key.J: if (Galaxy.Travel()) { BuildSector(); UpdateShips(); UpdateCamera(1,true); } break;
             case Key.E: Universe.ToggleDock(); break;
             case Key.B: Universe.PlayerBuy(); break;
             case Key.V: Universe.PlayerSell(); break;
             case Key.T: Universe.CycleTarget(); break;
-            case Key.G: Universe.ToggleAutopilot(); break;
+            case Key.G: _steering=Vector2.Zero; Universe.ToggleAutopilot(); break;
             default: return;
         }
         _beep.Play();
+    }
+
+    private void UpdateMouseMode()
+    {
+        Input.MouseMode= !Paused && !MapOpen && (Walking || MouseFlight) ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
+        _mouseDelta=Vector2.Zero;_steering=Vector2.Zero;
+    }
+
+    private void ToggleWalking()
+    {
+        if (Walking)
+        {
+            if (!NearSeat) { Universe.Notify("Podejdź do fotela z przodu kabiny i naciśnij F."); return; }
+            Walking=false;Cockpit=true;
+        }
+        else
+        {
+            if (Universe.Autopilot || Universe.Player.Velocity.Length()>.5f) { Universe.Notify("Najpierw wyłącz autopilota i zatrzymaj statek spacją, potem F."); return; }
+            Walking=true; _walkPosition=new(0,.65f,-.6f); _walkYaw=0;_walkPitch=0;
+        }
+        MapOpen=false;_hud.Visible=true;UpdateMouseMode();UpdateShips();UpdateCamera(1,true);
+    }
+
+    private void MoveOnFoot(float delta)
+    {
+        var direction=new Vector3(Axis(Key.D,Key.A),0,-Axis(Key.W,Key.S));
+        if(direction.LengthSquared()>1) direction=direction.Normalized();
+        _walkPosition=Cabin.Clamp(_walkPosition+new Basis(Vector3.Up,_walkYaw)*direction*delta*(Input.IsPhysicalKeyPressed(Key.Shift)?3.2f:1.8f));
     }
 
     private void RunSmokeScenario()
@@ -168,9 +251,28 @@ public partial class Main : Node3D
             if (Universe.PlayerDeliveredOre != 10 || Universe.Player.Credits <= 1000 || Universe.CollisionCount != 0) throw new Exception("trade/collision invariant failed");
             for (int i = 0; i < 7200; i++) Universe.Step();
             if (Universe.DeliveredOre <= 10 || Universe.Refinery.Metal == 0) throw new Exception("AI economy failed");
+            // A stopped pilot can walk, stays within cabin bounds, and must approach the chair to return.
+            Act(Key.F);
+            if (!Walking) throw new Exception("could not leave pilot seat");
+            Act(Key.K);Act(Key.G);
+            if(Universe.Autopilot) throw new Exception("ship controls active while walking");
+            _walkPosition=Cabin.Clamp(new(50,50,50));
+            if (_walkPosition.X>1.3f || _walkPosition.Z>2.6f) throw new Exception("cabin bounds failed");
+            Act(Key.F);
+            if (!Walking) throw new Exception("returned to seat remotely");
+            _walkPosition=new(0,.65f,-1.3f); Act(Key.F);
+            if (Walking) throw new Exception("could not return to seat");
+            for(int sector=0;sector<3;sector++)
+            {
+                Act(Key.K);
+                for(int i=0;i<18000 && Universe.Autopilot;i++) SmokeStep();
+                if(GateDistance>5 || Universe.CollisionCount!=0) throw new Exception("gate approach failed");
+                int before=Galaxy.Sector; Act(Key.J);
+                if(Galaxy.Sector==(before)) throw new Exception("sector travel failed");
+            }
             Act(Key.C); Act(Key.Tab);
             UpdateShips(); UpdateCamera(1, true); _hud.Refresh();
-            GD.Print($"SMOKE PASS 3D: scene, autopilot trade route, player trade, AI delivered {Universe.DeliveredOre}, metal {Universe.Refinery.Metal}, no collisions");
+            GD.Print($"SMOKE PASS 3D: cabin walk/seat, three sector jumps, autopilot trade route, player trade, AI delivered {Universe.DeliveredOre}, metal {Universe.Refinery.Metal}, no collisions");
             FinishSmoke(0);
         }
         catch (Exception ex) { GD.PushError($"SMOKE FAIL 3D: {ex.Message}"); FinishSmoke(1); }

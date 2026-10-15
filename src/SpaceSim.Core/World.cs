@@ -54,22 +54,44 @@ public sealed class World
     public const float SectorRadius = 3000;
     public bool Autopilot { get; private set; }
     public Station Target => _targetMine ? Mine : Refinery;
-    public int PlayerDeliveredOre { get; private set; }
+    public int PlayerDeliveredOre { get; internal set; }
     public int CollisionCount { get; private set; }
     public IReadOnlyList<CollisionBody> CollisionBodies { get; }
     private bool _targetMine = true;
     private readonly Queue<Vector3> _waypoints = new();
     private readonly Queue<Vector3> _traderWaypoints = new();
 
-    public World()
+    public bool FlightAssist { get; private set; } = true;
+    public bool NavigatingToGate { get; private set; }
+    public static readonly Vector3 GatePosition = new(180, 100, 650);
+    public void ToggleFlightAssist() { FlightAssist=!FlightAssist; LastEvent=FlightAssist?"Wspomaganie lotu włączone — silniki wyhamowują dryf.":"Wspomaganie wyłączone — lot bezwładnościowy."; }
+    public void Notify(string message) => LastEvent=message;
+    public void NavigateToGate()
     {
+        Player.DockedAt=null; PlanRoute(_waypoints,Player.Position,GatePosition);
+        NavigatingToGate=true; Autopilot=true;
+        LastEvent="Autopilot do bramy. Po dotarciu J — przejdź do następnego sektora.";
+    }
+
+    public World(int sector = 0)
+    {
+        if (sector == 1)
+        {
+            Mine=new("mine","VESPER / Złoża lodowe",new(-380,-60,-500),true,150,7000);
+            Refinery=new("refinery","AURORA / Przetwórnia",new(540,160,-1500),false,40,42000);
+        }
+        else if (sector == 2)
+        {
+            Mine=new("mine","CINDER / Wydobycie",new(-160,140,-650),true,45,12000);
+            Refinery=new("refinery","FORGE / Huta",new(650,-80,-1100),false,110,60000);
+        }
         var bodies = new List<CollisionBody>
         {
             new(Mine.Position, 63, false), new(Refinery.Position, 70, false),
             new(Mine.Position + new Vector3(-105, 0, 0), 28, false),
             new(Mine.Position + new Vector3(105, 0, 0), 28, false)
         };
-        var random = new Random(344);
+        var random = new Random(344 + sector * 713);
         for (int i = 0; i < 42; i++)
             bodies.Add(new(new Vector3(-490 - random.Next(0, 800), random.Next(-150, 170), -150 - random.Next(0, 1500)), random.Next(12, 42), true));
         CollisionBodies = bodies.AsReadOnly();
@@ -103,6 +125,7 @@ public sealed class World
     public void SelectTarget(bool mine)
     {
         _targetMine = mine;
+        NavigatingToGate=false;
         Autopilot = false;
         LastEvent = $"Wybrano cel: {Target.Name}. G — rozpocznij lot automatyczny.";
     }
@@ -111,6 +134,7 @@ public sealed class World
 
     public void ToggleAutopilot()
     {
+        NavigatingToGate=false;
         if (Autopilot) { Autopilot = false; LastEvent = "Autopilot wyłączony. Sterowanie ręczne."; return; }
         Player.DockedAt = null;
         PlanRoute(_waypoints, Player.Position, Target.DockPosition);
@@ -146,6 +170,7 @@ public sealed class World
         if (Autopilot && input.HasManualControl)
         {
             Autopilot = false;
+            NavigatingToGate=false;
             LastEvent = "Przejęto sterowanie ręczne.";
         }
         Vector3 before = Player.Position;
@@ -154,7 +179,8 @@ public sealed class World
             if (FollowRoute(Player, _waypoints, 120))
             {
                 Autopilot = false;
-                ToggleDock();
+                if (NavigatingToGate) { NavigatingToGate=false; LastEvent="Brama gotowa. J — przejście do kolejnego sektora."; }
+                else ToggleDock();
                 return;
             }
         }
@@ -165,7 +191,16 @@ public sealed class World
             var desired = Player.Forward * Math.Clamp(input.Thrust, -0.5f, 1) + Player.Right * Math.Clamp(input.Strafe, -1, 1) * 0.7f + Vector3.UnitY * Math.Clamp(input.Lift, -1, 1) * 0.7f;
             if (desired.LengthSquared() > 1) desired = Vector3.Normalize(desired);
             Player.Velocity += desired * (input.Boost ? 130 : 75) * StepSeconds;
-            Player.Velocity *= input.Brake ? 0.91f : 0.997f;
+            if (input.Brake) Player.Velocity *= .91f;
+            else if (FlightAssist)
+            {
+                // Damp perpendicular drift while thrust is applied; releasing thrust brakes smoothly.
+                var longitudinal=Player.Forward*Vector3.Dot(Player.Velocity,Player.Forward);
+                Player.Velocity = longitudinal + (Player.Velocity-longitudinal)*.96f;
+                if (MathF.Abs(input.Thrust)<.01f && MathF.Abs(input.Strafe)<.01f && MathF.Abs(input.Lift)<.01f)
+                    Player.Velocity *= .975f;
+            }
+            else Player.Velocity *= .9995f;
             float limit = input.Boost ? BoostSpeed : CruiseSpeed;
             if (Player.Velocity.LengthSquared() > limit * limit)
                 Player.Velocity = Vector3.Normalize(Player.Velocity) * MathF.Max(limit, Player.Velocity.Length() - 100 * StepSeconds);
@@ -211,6 +246,7 @@ public sealed class World
         Player.Position = hit.Position + normal * (hit.Radius + 5.1f);
         Player.Velocity = Vector3.Reflect(Player.Velocity, normal) * 0.15f;
         CollisionCount++;
+        NavigatingToGate=false;
         Autopilot = false;
         LastEvent = "Kontakt z obiektem — wyhamowano. Dokuj przy świecącym znaczniku portu.";
     }
@@ -246,6 +282,7 @@ public sealed class World
 
     public string ToggleDock()
     {
+        NavigatingToGate=false;
         Autopilot = false;
         if (Player.DockedAt is not null)
         {

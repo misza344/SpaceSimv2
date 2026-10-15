@@ -57,7 +57,7 @@ public partial class FlightHud : Control
         for (int i = 0; i < buttons.Length; i++)
         {
             buttons[i].Position = new(x, 348 + i * 42); buttons[i].Size = new(246, 34);
-            buttons[i].Visible = !Game.MapOpen && !Game.Paused;
+            buttons[i].Visible = !Game.MapOpen && !Game.Paused && !Game.Walking;
         }
         _nav.Text = W.Autopilot ? "G  Przerwij autopilota" : W.Player.DockedAt is null ? "G  Leć i zadokuj" : "G  Odleć do celu";
         _dock.Text = W.Player.DockedAt is null ? "E  Zadokuj" : "E  Odłącz dok";
@@ -65,9 +65,9 @@ public partial class FlightHud : Control
         _sell.Disabled = W.Player.DockedAt != "refinery" || W.Player.Ore == 0;
         _dock.Disabled = W.Player.DockedAt is null && (NV.Distance(W.Player.Position, W.NearestStation(W.Player).DockPosition) > World.DockRange || W.Player.Velocity.Length() > World.DockSpeed);
         _status.Position = new(38, Height - 111); _status.Size = new(Width - 76, 45);
-        _status.Text = W.LastEvent; _status.Visible = !Game.MapOpen && !Game.Paused;
+        _status.Text = W.LastEvent; _status.Visible = !Game.MapOpen && !Game.Paused && !Game.Walking;
         _trader.Position = new(42, 434); _trader.Size = new(216, 70); _trader.Text = W.Trader.Status;
-        _trader.Visible = !Game.MapOpen && !Game.Paused;
+        _trader.Visible = !Game.MapOpen && !Game.Paused && !Game.Walking;
         _resume.Position = new(Width / 2 - 135, Height / 2 + 46); _resume.Size = new(270, 42); _resume.Visible = Game.Paused;
         QueueRedraw();
     }
@@ -75,18 +75,27 @@ public partial class FlightHud : Control
     public override void _Draw()
     {
         if (_nav is null) return;
-        DrawMarkers();
+        if (!Game.Walking) DrawMarkers();
         // Thin cockpit framing keeps the flight view open.
         DrawRect(new Rect2(0, 0, Width, 82), new Color(.018f,.035f,.055f,.94f));
         Text(new(29, 36), "SPACE", 25, _white); Text(new(114, 36), "SIM", 25, _cyan);
-        Text(new(29, 61), "KEPLER RUN   /   PROTOTYP 0.3", 11, _muted);
+        Text(new(29, 61), "KEPLER RUN   /   PROTOTYP 0.4", 11, _muted);
         Line(new(229, 21), new(229, 61), new Color("334854"));
-        Text(new(251, 36), "PAS KEPLERA", 17, _white);
-        Text(new(251, 59), "SEKTOR 01   •   RUCH HANDLOWY AKTYWNY", 11, _muted);
+        Text(new(251, 36), Game.Galaxy.Name, 15, _white);
+        Text(new(251, 59), $"SEKTOR {Game.Galaxy.Sector+1:00} / 03   •   RUCH HANDLOWY AKTYWNY", 11, _muted);
         Text(new(Width - 292, 35), $"{W.Player.Credits:N0}  KR", 24, _cyan);
         Text(new(Width - 292, 60), $"ŁADOWNIA   {W.Player.Ore:00} / {Ship.Capacity}   RUDA", 12, _white);
         if (Game.Paused) { PausePanel(); return; }
         if (Game.MapOpen) { Map(); return; }
+        if (Game.Walking)
+        {
+            Panel(new(24,Height-126,Width-48,108));
+            Text(new(40,Height-96),"KABINA PIONIERA / PIESZO",18,_cyan);
+            Text(new(40,Height-70),"WASD — spacer   •   Mysz — rozglądanie   •   Shift — szybszy krok",15,_white);
+            Text(new(40,Height-44),(Game.NearSeat?"F — usiądź i pilotuj   •   ESC — pauza / uwolnij kursor":"Podejdź do fotela z przodu kabiny   •   ESC — pauza / uwolnij kursor"),14,_muted);
+            DrawCircle(new(Width/2,Height/2),2,_white);
+            return;
+        }
         LeftPanel(); RightPanel();
         float cx = Width / 2, cy = Height / 2;
         var reticle = new Color(.7f,.91f,.94f,.5f);
@@ -106,27 +115,30 @@ public partial class FlightHud : Control
             DrawPolyline([new(Width, Height-135), new(Width*.78f, Height-176), new(Width*.64f, Height-138)], new Color(.1f,.18f,.23f,.8f), 8, true);
         }
         Panel(new(24, Height - 126, Width - 48, 108));
-        Text(new(39, Height - 53), "W/S  ciąg     A/D  w bok     Q/Z  góra/dół     PPM + mysz / strzałki  kierunek     SHIFT  dopalacz     SPACJA  hamulec", 12, _muted);
-        Text(new(39, Height - 31), "G  autopilot     T  cel     E  dok     B/V  handel     C  kamera     H  HUD     TAB  mapa     P / ESC  pauza", 12, _cyan);
-        Center(new(cx, 110), "C  /  " + (Game.Cockpit ? "KAMERA POKŁADOWA" : "KAMERA POŚCIGOWA"), 11, _muted);
+        Text(new(39, Height - 53), "W/S ciąg   A/D w bok   Q/Z góra/dół   M mysz / PPM / strzałki   SHIFT dopalacz   SPACJA hamulec   F wstań", 12, _muted);
+        Text(new(39, Height - 31), "G autopilot   T cel   E dok   B/V handel   C kamera   H HUD   TAB mapa   K brama   J skok   ESC pauza", 12, _cyan);
+        Center(new(cx, 110), "C / " + (Game.Cockpit ? "KOKPIT" : "KAMERA POŚCIGOWA") + (Game.MouseFlight?"  •  M / MYSZ AKTYWNA":"  •  M / WŁĄCZ MYSZ"), 11, _muted);
     }
 
     private void LeftPanel()
     {
         Panel(new(26, 130, 244, 203));
         Text(new(42, 157), "PIONIER  /  01", 18, _white);
-        Text(new(42, 184), "TRANSPORTOWIEC LEKKI", 10, _muted);
+        Text(new(42, 184), (W.FlightAssist?"X / WSPOMAGANIE WŁ.":"X / LOT BEZWŁADNOŚCIOWY"), 10, _muted);
         Line(new(42, 199), new(254, 199), new Color("344956"));
         Text(new(42, 225), $"PUŁAP    {W.Player.Position.Y:0} m", 13, _white);
         Text(new(42, 250), $"RUDA     {W.Player.Ore} / {Ship.Capacity}", 13, _white);
         Bar(new(42, 262, 212, 4), W.Player.Ore / (float)Ship.Capacity, _cyan);
-        Text(new(42, 295), W.PlayerDeliveredOre > 0 ? "✓ PIERWSZY KURS UKOŃCZONY" : W.Player.Ore > 0 ? "02 / DOSTARCZ RUDĘ DO HELIOS" : "01 / KUP RUDĘ W KEPLER", 11, W.PlayerDeliveredOre > 0 ? _cyan : _amber);
+        Text(new(42, 295), W.PlayerDeliveredOre > 0 ? "✓ PIERWSZY KURS UKOŃCZONY" : W.Player.Ore > 0 ? "02 / DOSTARCZ DO RAFINERII" : "01 / KUP RUDĘ W KOPALNI", 11, W.PlayerDeliveredOre > 0 ? _cyan : _amber);
         Text(new(42, 316), W.Player.Ore > 0 ? "G — lot do celu  •  V — sprzedaż" : "G — lot do celu  •  B — zakup", 11, _muted);
         Panel(new(26, 355, 244, 154));
         Text(new(42, 382), "KURIER  /  AUTONOMICZNY", 12, _amber);
         Text(new(42, 407), $"Ładunek: {W.Trader.Ore} rudy", 13, _white);
         Text(new(42, 430), $"Dostawy sektora: {W.DeliveredOre}", 12, _muted);
-        MiniRadar(new(26, 531, 244, 104));
+        Panel(new(26,531,244,104));
+        Text(new(42,555),"BRAMA / " + Galaxy.Names[Game.Galaxy.NextSector].Split(' ')[0],13,_cyan);
+        Text(new(42,581),$"Odległość: {Distance(Game.GateDistance)}",13,_white);
+        Text(new(42,607),"K — podejście   /   J — skok",12,_amber);
     }
 
     private void RightPanel()
@@ -136,17 +148,29 @@ public partial class FlightHud : Control
         float x = Right + 16;
         Panel(new(Right, 130, 278, 427));
         Text(new(x, 157), "OBIEKT NAWIGACJI", 11, _muted);
-        Text(new(x, 189), target.IsMine ? "KEPLER" : "HELIOS", 27, target.IsMine ? _cyan : _amber);
-        Text(new(x, 212), target.IsMine ? "KOPALNIA  /  PORT 01" : "RAFINERIA  /  PORT 01", 11, _muted);
-        Text(new(x, 241), $"Do portu   {Distance(NV.Distance(W.Player.Position, target.DockPosition))}", 16, _white);
+        bool gate=W.NavigatingToGate || Game.GateDistance<100;
+        Text(new(x, 189), gate?"BRAMA":target.Name.Split('/')[0].Trim(), 27, gate?_cyan:target.IsMine ? _cyan : _amber);
+        Text(new(x, 212), gate?"DO: "+Galaxy.Names[Game.Galaxy.NextSector].Split(' ')[0]:target.IsMine ? "KOPALNIA  /  PORT 01" : "RAFINERIA  /  PORT 01", 11, _muted);
+        Text(new(x, 241), gate?$"{Distance(Game.GateDistance)}  /  J — skok":$"Do portu   {Distance(NV.Distance(W.Player.Position, target.DockPosition))}", 16, _white);
         Line(new(x, 256), new(x + 246, 256), new Color("344956"));
         Text(new(x, 280), $"{(trade.IsMine ? "Zakup" : "Sprzedaż")} rudy   {trade.Price} kr / szt.", 14, _white);
         Text(new(x, 302), $"Magazyn {trade.Ore} rudy  •  {trade.Metal} metali", 12, _muted);
-        Text(new(x, 325), W.Player.DockedAt is null ? "Dok: do 75 m / poniżej 25 m/s" : $"Terminal: {(trade.IsMine ? "Kepler" : "Helios")}", 12, _cyan);
+        Text(new(x, 325), W.Player.DockedAt is null ? "Dok: do 75 m / poniżej 25 m/s" : $"Terminal: {trade.Name.Split('/')[0].Trim()}", 12, _cyan);
     }
 
     private void DrawMarkers()
     {
+        if (W.NavigatingToGate || Game.GateDistance<200)
+        {
+            var gate=SpaceGeometry.Convert(World.GatePosition);
+            var point=Game.FlightCamera.UnprojectPosition(gate);
+            if(Game.FlightCamera.IsPositionBehind(gate)) point=new Vector2(Width,Height)-point;
+            point=new(Math.Clamp(point.X,309,Width-319),Math.Clamp(point.Y,150,Height-235));
+            DrawArc(point,20,0,Mathf.Tau,32,_cyan,2,true);
+            Center(point+new Vector2(0,-30),"BRAMA",13,_cyan);
+            Center(point+new Vector2(0,40),$"{Distance(Game.GateDistance)} / J",12,_white);
+            return;
+        }
         foreach (var station in new[] { W.Mine, W.Refinery })
         {
             if (W.Player.DockedAt == station.Id) continue;
@@ -177,7 +201,7 @@ public partial class FlightHud : Control
                     Line(corner, corner - new Vector2(0, sy * 7), color, 1.5f);
                 }
             }
-            string name = station.IsMine ? "KEPLER" : "HELIOS";
+            string name = station.Name.Split('/')[0].Trim();
             Center(clamped + new Vector2(0, -28), name, 11, color);
             Center(clamped + new Vector2(0, 38), Distance(NV.Distance(W.Player.Position, station.DockPosition)), 12, _white);
         }
@@ -200,13 +224,13 @@ public partial class FlightHud : Control
     }
 
     private Rect2 MapRect => new(Width / 2 - 450, Height / 2 - 270, 900, 540);
-    private Vector2 MapPoint(NV v) => MapRect.Position + new Vector2(450 + v.X * .24f, 460 + v.Z * .24f);
+    private Vector2 MapPoint(NV v) => MapRect.Position + new Vector2(450 + v.X * .17f, 395 + v.Z * .17f);
     private void Map()
     {
         DrawRect(new Rect2(0, 82, Width, Height - 82), new Color(.015f,.03f,.055f,.92f));
         var rect = MapRect; Panel(rect);
-        Text(rect.Position + new Vector2(24, 38), "MAPA SEKTORA / PAS KEPLERA", 21, _white);
-        Text(rect.Position + new Vector2(24, 66), "Kliknij stację, aby wybrać cel. G — autopilot. TAB — wróć do lotu.", 14, _muted);
+        Text(rect.Position + new Vector2(24, 38), "MAPA / " + Game.Galaxy.Name, 21, _white);
+        Text(rect.Position + new Vector2(24, 66), "Kliknij stację: G — lot. K — do bramy. J — skok przy bramie. TAB — wróć.", 14, _muted);
         for (int i = 1; i < 12; i++) Line(rect.Position + new Vector2(i * 75, 90), rect.Position + new Vector2(i * 75, 507), new Color(.13f,.23f,.3f,.3f));
         for (int i = 2; i < 7; i++) Line(rect.Position + new Vector2(20, i * 75), rect.Position + new Vector2(880, i * 75), new Color(.13f,.23f,.3f,.3f));
         foreach (var rock in W.CollisionBodies.Where(b => b.IsAsteroid))
@@ -222,6 +246,9 @@ public partial class FlightHud : Control
             Text(p + new Vector2(22, -4), station.Name, 16, color);
             Text(p + new Vector2(22, 19), $"Ruda: {station.Ore}  •  Pułap: {station.Position.Y:0} m", 12, _muted);
         }
+        var gate=MapPoint(World.GatePosition);
+        DrawArc(gate,12,0,Mathf.Tau,32,_cyan,2,true);
+        Text(gate+new Vector2(20,-10),"BRAMA → "+Galaxy.Names[Game.Galaxy.NextSector].Split(' ')[0],12,_cyan);
         var player = MapPoint(W.Player.Position);
         player = new(Math.Clamp(player.X, rect.Position.X + 15, rect.End.X - 15), Math.Clamp(player.Y, rect.Position.Y + 90, rect.End.Y - 20));
         DrawCircle(player, 5, _white); Text(player + new Vector2(12, 32), "PIONIER / TY", 12, _white);
