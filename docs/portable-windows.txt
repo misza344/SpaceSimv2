@@ -31,6 +31,7 @@ WASD + mysz — spacer po kabinie; Shift — szybszy krok.
 Podejdź do fotela z przodu i naciśnij F, żeby wrócić do pilotowania.
 Esc — pauza i uwolnienie kursora. Nie można wychodzić ze statku w próżnię.
 Utrata aktywności okna automatycznie pauzuje grę.
+F12 zapisuje zrzut do danych użytkownika gry, podfolder screenshots.
 
 STEROWANIE RĘCZNE
 
@@ -43,6 +44,11 @@ P lub Esc — pauza. Tab — mapa. H — ukryj/pokaż interfejs.
 
 Dokuj przy świecącym porcie (do 75 m, prędkość poniżej 25 m/s).
 Sterowanie ręczne przerywa autopilota. Na mapie symulacja działa dalej.
+
+ZNANY PROBLEM
+
+W testach na Linux/Mesa niektóre napisy HUD znikały po zmianie sektora.
+Błąd pozostaje otwarty; nie potwierdzono go na Windows. F12 zapisuje zrzut.
 
 TO JEST PROTOTYP
 

@@ -18,3 +18,17 @@
 Ograniczenia zakresu: trzy sektory w pętli bram, zawieszone nieaktywne światy,
 chodzenie tylko po kabinie, uproszczone granice ruchu pieszego, brak EVA,
 wnętrz stacji i zapisu gry na dysku. Instrumenty 3D są dekoracyjne.
+
+## Otwarty problem renderowania HUD
+
+Kontrola zrzutów F12 oraz `--travel-review` ujawniła znikające fragmenty
+napisów po podróżach w środowisku Linux/Mesa llvmpipe. Testy logiki nie
+wykrywają tego błędu. Zmiana czcionki, MSAA, buforów i osobny viewport
+nie dały powtarzalnej poprawy; eksperymentalne zmiany usunięto.
+Vulkan nie mógł zostać przetestowany (brak VK_KHR_surface).
+Problem pozostaje otwarty. Nie potwierdzono, czy występuje także na Windows.
+Nie należy traktować tego wydania jako wizualnie pozbawionego błędów.
+
+Trzy sceny sektorów są buforowane i zwalniane przy zamknięciu. F12 zapisuje
+obraz bezpośrednio z renderera. `--travel-review` zapisuje cztery kolejne
+wizyty w katalogu danych gry / travel-review i ułatwia odtworzenie problemu.

@@ -59,6 +59,7 @@ Instrumenty 3D są dekoracyjne; dane lotu pokazuje HUD. Nadal brak zapisu na dys
 | C | Kamera zza statku / kamera pokładowa |
 | Tab | Mapa sektora |
 | P / Esc | Pauza / kontynuacja |
+| F12 | Zrzut ekranu w folderze danych gry / screenshots |
 
 Dokowanie ręczne: podejdź do **świecącego portu**, nie do środka stacji; odległość do 75 m i prędkość poniżej 25 m/s. HUD pokazuje odległość do portu. Statek ma bezwładność i wspomagane hamowanie. F pozwala wstać po zatrzymaniu statku i chodzić po wymodelowanej kabinie.
 
@@ -102,6 +103,12 @@ bash scripts/export-windows.sh
 Narzędzia trafiają do ignorowanego `.tools/`. Skrypty wymagają `curl`, `tar`, `unzip`, a eksport również Pythona 3. `source scripts/env.sh` aktywuje narzędzia dla bezpośrednich poleceń. W chmurowym sandboxie .NET może wymagać zatwierdzonego szerszego dostępu do systemowego mutexa NuGet.
 
 Eksporter weryfikuje SHA-512 oficjalnych szablonów Godota, odtwarza zablokowane zależności, dołącza runtime .NET, instrukcję i licencje. Wynik: `dist/SpaceSim-0.4-3D-win-x64-portable.zip` oraz suma SHA-256. Wydanie nie jest podpisane cyfrowo. Pliki zależności edytora i konfiguracji ExportRelease mają osobne lockfile'y.
+
+## Znany problem oprawy 0.4
+
+Na Linux/Mesa llvmpipe zaobserwowano znikające fragmenty napisów HUD po skoku.
+Problem jest nadal otwarty; nie potwierdzono jego występowania na Windows.
+F12 zapisuje zrzut bezpośrednio z gry, pomocny w zgłaszaniu problemu.
 
 ## Weryfikacja
 

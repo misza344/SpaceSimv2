@@ -32,7 +32,7 @@ Oryginalny research pozostaje dokumentem źródłowym. Nie deklarujemy determini
 `Galaxy` przechowuje trzy instancje `World`. Skok wymaga bliskości bramy,
 małej prędkości i odłączenia od doku. Przenosi kredyty, rudę, postęp dostaw
 oraz ustawienie wspomagania. Zapasy stacji pozostają w poszczególnych światach;
-nieaktywne światy są wstrzymane. Godot przebudowuje tylko wizualny sektor.
+nieaktywne światy są wstrzymane. Godot przełącza trzy buforowane sceny sektorów. Nie usuwa ich zasobów graficznych podczas skoku; sceny poza drzewem są zwalniane przy zamknięciu.
 
 Kabina działa w lokalnym układzie statku. Ograniczenia X/Z pilota odpowiadają
 ścianom i zabudowie; wysokość oczu jest stała. Wyjście jest blokowane podczas

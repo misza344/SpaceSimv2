@@ -11,6 +11,7 @@ public partial class Main : Node3D
     public bool NearSeat => _walkPosition.DistanceTo(Cabin.Seat)<=1.6f;
     public float GateDistance => NVector.Distance(Universe.Player.Position,World.GatePosition);
     private Node3D _sectorVisual = null!, _cabin = null!;
+    private readonly Node3D?[] _sectorCache = new Node3D?[3];
     private Vector3 _walkPosition = new(0,.65f,-.6f);
     private float _walkYaw, _walkPitch;
     private Vector2 _steering;
@@ -47,13 +48,22 @@ public partial class Main : Node3D
         _beep = new AudioStreamPlayer { Stream = Tone(680, .12f, false), VolumeDb = -21 }; AddChild(_beep);
         _smoke = OS.GetCmdlineUserArgs().Contains("--smoke-test");
         if (OS.GetCmdlineUserArgs().Contains("--export-models")) ExportModels();
+        if (OS.GetCmdlineUserArgs().Contains("--travel-review")) { _artReview=true; ReviewTravel(); }
         if (OS.GetCmdlineUserArgs().Contains("--art-review")) { _artReview=true; CaptureModels(); }
     }
 
     private void BuildSector()
     {
-        if (_sectorVisual is not null) { RemoveChild(_sectorVisual); _sectorVisual.QueueFree(); }
+        if (_sectorVisual is not null) RemoveChild(_sectorVisual);
+        if (_sectorCache[Galaxy.Sector] is { } cached)
+        {
+            _sectorVisual=cached;AddChild(cached);
+            _mine=cached.GetNode<Node3D>("KeplerExtraction");
+            _refinery=cached.GetNode<Node3D>("HeliosFoundry");
+            return;
+        }
         _sectorVisual=new Node3D {Name="Sector"};AddChild(_sectorVisual);
+        _sectorCache[Galaxy.Sector]=_sectorVisual;
         BuildEnvironment();
         _mine=SpaceGeometry.Station(_sectorVisual,Universe.Mine);
         _refinery=SpaceGeometry.Station(_sectorVisual,Universe.Refinery);
@@ -186,6 +196,7 @@ public partial class Main : Node3D
     {
         if (key == Key.P || key == Key.Escape) { Paused = !Paused; _hud.Visible=true; UpdateMouseMode(); _hud.Refresh(); return; }
         if (key == Key.Tab) { MapOpen = !MapOpen; _hud.Visible=true; UpdateMouseMode(); _hud.Refresh(); return; }
+        if (key == Key.F12) { CaptureScreenshot(); return; }
         if (key == Key.H) { _hud.Visible = !_hud.Visible; return; }
         if (Paused) return;
         if (key == Key.F) { ToggleWalking(); return; }
@@ -205,6 +216,18 @@ public partial class Main : Node3D
             default: return;
         }
         _beep.Play();
+    }
+
+    private async void CaptureScreenshot()
+    {
+        await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
+        using var screenshot=GetViewport().GetTexture().GetImage();
+        string directory=ProjectSettings.GlobalizePath("user://screenshots");
+        System.IO.Directory.CreateDirectory(directory);
+        string path=System.IO.Path.Combine(directory,$"SpaceSim-{DateTime.UtcNow:yyyyMMdd-HHmmss}.png");
+        var result=screenshot.SavePng(path);
+        Universe.Notify(result==Error.Ok?"Zapisano zrzut w folderze danych gry / screenshots.":"Nie udało się zapisać zrzutu.");
+        GD.Print($"SCREENSHOT: {path} ({result})");
     }
 
     private void UpdateMouseMode()
@@ -278,6 +301,23 @@ public partial class Main : Node3D
         catch (Exception ex) { GD.PushError($"SMOKE FAIL 3D: {ex.Message}"); FinishSmoke(1); }
     }
 
+    private async void ReviewTravel()
+    {
+        StopSounds();
+        string dir=ProjectSettings.GlobalizePath("user://travel-review");System.IO.Directory.CreateDirectory(dir);
+        for(int visit=0;visit<4;visit++)
+        {
+            UpdateShips();UpdateCamera(1,true);_hud.Refresh();
+            for(int frame=0;frame<20;frame++) await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
+            using var shot=GetViewport().GetTexture().GetImage();shot.SavePng($"{dir}/{visit}.png");
+            if(visit==3) break;
+            Universe.NavigateToGate();for(int tick=0;tick<18000&&Universe.Autopilot;tick++)Universe.Step();
+            if(!Galaxy.Travel()) { GD.PushError("Travel review failed");FinishSmoke(1);return; }
+            BuildSector();
+        }
+        GD.Print($"TRAVEL REVIEW PASS: {dir}");FinishSmoke(0);
+    }
+
     private async void CaptureModels()
     {
         _hud.Visible=false; _cockpitFrame.Visible=false; StopSounds();
@@ -334,13 +374,18 @@ public partial class Main : Node3D
         }
     }
 
-    public override void _ExitTree() => StopSounds();
+    public override void _ExitTree()
+    {
+        StopSounds();
+        foreach(var sector in _sectorCache)
+            if(sector is not null && GodotObject.IsInstanceValid(sector) && sector.GetParent() is null) sector.Free();
+    }
 
     private async void FinishSmoke(int code)
     {
         StopSounds();
         // Let the audio server consume its queued stop commands before destroying the scene.
-        await ToSignal(GetTree().CreateTimer(.1), SceneTreeTimer.SignalName.Timeout);
+        await ToSignal(GetTree().CreateTimer(.5), SceneTreeTimer.SignalName.Timeout);
         GetTree().Quit(code);
     }
 
